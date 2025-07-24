@@ -1,0 +1,22 @@
+{
+  // Python
+  "python.defaultInterpreterPath": "./primary-backend/venv/bin/python",
+  "[python]": {
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "always"
+    },
+    "editor.defaultFormatter": "ms-python.python",
+    "editor.formatOnSave": true
+  },
+ 
+  // JavaScript/TypeScript
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // General
+  "editor.formatOnSave": true
+}
