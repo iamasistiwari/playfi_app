@@ -57,17 +57,30 @@ class SongSerializer(serializers.ModelSerializer):
 
 
 class PlaylistSerializer(serializers.ModelSerializer):
-    songs = serializers.PrimaryKeyRelatedField(
-        many=True, queryset=Songs.objects.all(), required=False
-    )
     admin = serializers.HiddenField(default=serializers.CurrentUserDefault())
     joined_users = serializers.PrimaryKeyRelatedField(
         many=True, queryset=User.objects.all(), required=False
     )
+    songs = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Songs.objects.all(), required=False, write_only=True
+    )
+
+    first_song = serializers.SerializerMethodField(read_only=True)
+
+    def get_first_song(self, obj):
+        first_song = obj.songs.first()
+        if first_song:
+            return {
+                "id": first_song.id,
+                "title": first_song.title,
+                "thumbnails": first_song.thumbnails.get("url"),
+            }
+        return None
+
 
     class Meta:
         model = Playlists
-        fields = ['id', 'playlistName', 'admin', 'joined_users', 'songs', 'created_at']
+        fields = ['id', 'playlistName', 'admin', 'joined_users', 'songs', 'created_at', "first_song"]
 
     def create(self, validated_data):
         songs = validated_data.pop('songs', [])
