@@ -1,12 +1,12 @@
-from django.shortcuts import get_object_or_404
 from rest_framework.decorators import (
     api_view,
     permission_classes,
     authentication_classes,
 )
+from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .utils import youtubeSearch
+from .utils import youtubeSearch, getYoutubMusicUrl, getExpiryTimeout
 from core.utils import create_response
 from rest_framework import status
 from django.core.cache import cache
@@ -18,6 +18,43 @@ from django.db.models import Q
 from .serializers import PlaylistSerializer, PlaylistDetailSerializer
 from rest_framework.views import APIView
 
+
+@api_view(["GET"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def playSong(request):
+    songId = request.GET.get("songId", "").replace(" ", "").strip('"')
+    if not songId:
+        return Response(
+            create_response(False, "Query parameter 'songId' is required"),
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    cache_key = f"song_url:{songId}"
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return Response(
+            create_response(True, "Feteched", {"url":cached_data}), status=status.HTTP_200_OK
+        )
+    try:
+        musicUrl = getYoutubMusicUrl(songId)
+        if(musicUrl):
+            timeout = getExpiryTimeout(musicUrl)
+            cache.set(cache_key, musicUrl, timeout=timeout) 
+            return Response(
+                create_response(True, "Feteched", {"url": musicUrl}), status=status.HTTP_200_OK
+            )
+        else:
+            return Response(
+                create_response(False, "An error occurred while fetching data"),
+                status=status.HTTP_404_NOT_FOUND,
+            )
+    except Exception as e:
+        return Response(
+            create_response(False, "An error occurred while fetching data"),
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    
+
 @api_view(["GET"])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
@@ -25,7 +62,7 @@ def searchSongs(request):
     q = request.GET.get("q", "")
     if not q:
         return Response(
-            create_response("error", "Query parameter 'q' is required"),
+            create_response(False, "Query parameter 'q' is required"),
             status=status.HTTP_404_NOT_FOUND,
         )
 
