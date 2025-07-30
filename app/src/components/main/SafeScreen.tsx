@@ -10,7 +10,7 @@ const SafeScreen = ({ children }) => {
         paddingTop: inset.top,
         flex: 1,
         paddingBottom: inset.bottom,
-        paddingHorizontal: 8,
+        paddingHorizontal: 12,
         backgroundColor: "#121212",
       }}
     >

@@ -6,6 +6,16 @@ import { persistor, store } from "@/redux/store";
 import { PersistGate } from "redux-persist/integration/react";
 import Toast from "react-native-toast-message";
 import { toastConfig } from "@/components/sub/CustomToast";
+import {
+  configureReanimatedLogger,
+  ReanimatedLogLevel,
+} from 'react-native-reanimated';
+
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: false, 
+});
+
 export default function Layout() {
   return (
     <Provider store={store}>

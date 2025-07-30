@@ -1,14 +1,16 @@
 import { View, Text } from "react-native";
 import React from "react";
 import Navbar from "@/components/main/Navbar";
+import DummySearchBar from "@/components/sub/DummySearchBar";
+import FadeInBox from "@/components/sub/FadeIn";
 
-const home = () => {
+const Home = () => {
   return (
     <View className="bg-primary min-h-[100vh] ">
       <Navbar />
-      
+      <DummySearchBar />
     </View>
   );
 };
 
-export default home;
+export default Home;
