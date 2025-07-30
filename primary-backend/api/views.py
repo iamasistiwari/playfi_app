@@ -3,6 +3,7 @@ from rest_framework.decorators import (
     permission_classes,
     authentication_classes,
 )
+import re
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -17,6 +18,24 @@ from .models import Playlists, Songs, User
 from django.db.models import Q
 from .serializers import PlaylistSerializer, PlaylistDetailSerializer
 from rest_framework.views import APIView
+
+
+@api_view(["GET"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def recentSongs(request):
+    try:
+        cache_key = f"{request.user.email}_recent_songs"
+        cached_data = cache.get(cache_key, [])
+        return Response(
+            create_response(True, "Feteched", {"recent_search": cached_data}), status=status.HTTP_200_OK
+        )
+
+    except Exception as e:
+        return Response(
+            create_response(False, "An error occurred while fetching search history"),
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
 
 @api_view(["GET"])
@@ -60,12 +79,29 @@ def playSong(request):
 @permission_classes([IsAuthenticated])
 def searchSongs(request):
     q = request.GET.get("q", "")
+    q = re.sub(r"[^a-zA-Z0-9\s]", "", q)
     if not q:
         return Response(
             create_response(False, "Query parameter 'q' is required"),
             status=status.HTTP_404_NOT_FOUND,
         )
+    # clean query
+    q = q.strip('"')
+    if len(q) < 1:
+        return Response(
+            create_response(False, "Query atleast 3 characters"),
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    
+    print("adfer cleaning query", q)
+    # put to user recent search
+    histroy_key = f"{request.user.email}_recent_songs"
+    songs = cache.get(histroy_key, [])
+    if not q in songs:
+        songs.append(q)
+    cache.set(histroy_key, songs, timeout=60 * 60 * 24)  # Cache for 24 hours
 
+    # cache search results
     cache_key = f"song_search:{q.lower().replace(' ', '_')}"
     cached_data = cache.get(cache_key)
 

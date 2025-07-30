@@ -8,4 +8,5 @@ urlpatterns = [
     path("add/song", views.addSongsToPlaylist, name="addSongsToPlaylist"),
     path("add/user", views.addUserToPlaylist, name="addUserToPlaylist"),
     path("playsong/", views.playSong, name="playSong"),
+    path("recentSongs/", views.recentSongs, name="recentSongs"),
 ]
