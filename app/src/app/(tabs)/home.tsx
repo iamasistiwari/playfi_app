@@ -1,12 +1,14 @@
-import { View, Text } from 'react-native'
-import React from 'react'
+import { View, Text } from "react-native";
+import React from "react";
+import Navbar from "@/components/main/Navbar";
 
 const home = () => {
   return (
-    <View>
-      <Text>home</Text>
+    <View className="bg-primary min-h-[100vh] ">
+      <Navbar />
+      
     </View>
-  )
-}
+  );
+};
 
-export default home
+export default home;
