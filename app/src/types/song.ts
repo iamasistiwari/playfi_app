@@ -17,7 +17,7 @@ export interface Video {
     short: string;
   };
   thumbnails: Thumbnail[];
-  richThumbnail: Thumbnail;
+  // richThumbnail: Thumbnail;
   channel: {
     name: string;
     id: string;

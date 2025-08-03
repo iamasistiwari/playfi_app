@@ -8,7 +8,6 @@ import { AxiosError } from "axios";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Text, View } from "react-native";
-import Toast from "react-native-toast-message";
 import { useDispatch, useSelector } from "react-redux";
 import z from "zod";
 
@@ -40,11 +39,11 @@ const Index = () => {
       if (!isSignup) {
         const zodValidate = loginSchema.safeParse(userDetails);
         if (!zodValidate.success) {
-          return Toast.show({
-            type: "error",
-            text1: "Invalid data.Try again",
-            position: "top",
-          });
+          // return Toast.show({
+          //   type: "error",
+          //   text1: "Invalid data.Try again",
+          //   position: "top",
+          // });
         }
         const res = await post("/api/auth/login", {
           email: userDetails.email,
@@ -64,40 +63,40 @@ const Index = () => {
       } else {
         const zodValidate = signUpSchema.safeParse(userDetails);
         if (!zodValidate.success) {
-          return Toast.show({
-            type: "error",
-            text1: "Invalid data. Try again",
-            position: "top",
-          });
+          // return Toast.show({
+          //   type: "error",
+          //   text1: "Invalid data. Try again",
+          //   position: "top",
+          // });
         }
         await post("/api/auth/signup", {
           name: userDetails.name,
           email: userDetails.email,
           password: userDetails.password,
         });
-        Toast.show({
-          type: "success",
-          text1: "Signup Successful! Now Login...",
-          position: "top",
-        });
+        // Toast.show({
+        //   type: "success",
+        //   text1: "Signup Successful! Now Login...",
+        //   position: "top",
+        // });
         setUserDetails({ name: "", email: "", password: "" });
         setIsSignup(false);
       }
     } catch (error) {
       if (error instanceof AxiosError) {
         if (error.response?.data?.responseData?.email) {
-          return Toast.show({
-            type: "error",
-            text1: error.response?.data?.responseData?.email,
-            position: "top",
-          });
+          // return Toast.show({
+          //   type: "error",
+          //   text1: error.response?.data?.responseData?.email,
+          //   position: "top",
+          // });
         }
         if (error.response?.data?.responseData?.password) {
-          return Toast.show({
-            type: "error",
-            text1: error.response?.data?.responseData?.password,
-            position: "top",
-          });
+          // return Toast.show({
+          //   type: "error",
+          //   text1: error.response?.data?.responseData?.password,
+          //   position: "top",
+          // });
         }
       }
     } finally {
@@ -109,7 +108,7 @@ const Index = () => {
     if (token) {
       router.replace("/home");
     }
-  }, [token, router]);
+  }, [token]);
 
   return (
     <View className="min-h-[100vh] items-center justify-center w-full p-4">

@@ -1,16 +1,13 @@
 import { View } from "react-native";
 import React, { useEffect } from "react";
-import { useLocalSearchParams } from "expo-router";
 import SongSearchBar from "@/components/main/SongSearchBar";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
-import SongPlayer from "@/components/main/SongPlayer";
 
 const SearchComp = () => {
-  const { id } = useLocalSearchParams();
   const translateY = useSharedValue(-20);
   const opacity = useSharedValue(0);
 
