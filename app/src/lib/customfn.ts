@@ -9,4 +9,3 @@ export const formatSentence = (sentence: string) => {
   return formattedWords.join(" ");
 };
 
-console.log(formatSentence("Hello+ - SUpreme (World) 123"));

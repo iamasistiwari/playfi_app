@@ -1,6 +1,5 @@
 import axios, { AxiosRequestConfig, Method } from "axios";
-import { store } from "../redux/store";
-
+import { getToken } from "./get-token";
 export const BASE_URL = "http://192.168.1.184:8000";
 
 const axiosInstance = axios.create({
@@ -17,8 +16,7 @@ const apiCall = async <T = any>(
   payload: any,
   additionalConfig: AxiosRequestConfig = {}
 ): Promise<T> => {
-  const token = store.getState().user.token;
-  
+  const token = await getToken();
   const headers: any = {
     ...additionalConfig.headers,
   };

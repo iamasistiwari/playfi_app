@@ -3,10 +3,10 @@ export interface SongSearchResponse {
     status: boolean;
     message: string;
   };
-  responseData: VideoItem[]
+  responseData: Video[];
 }
 
-export interface VideoItem {
+export interface Video {
   type: string;
   id: string;
   title: string;
@@ -18,7 +18,12 @@ export interface VideoItem {
   };
   thumbnails: Thumbnail[];
   richThumbnail: Thumbnail;
-  channel: Channel;
+  channel: {
+    name: string;
+    id: string;
+    thumbnails: Thumbnail[];
+    link: string;
+  };
   accessibility: {
     title: string;
     duration: string;
@@ -32,9 +37,8 @@ export interface Thumbnail {
   height: number;
 }
 
-export interface Channel {
-  name: string;
-  id: string;
-  thumbnails: Thumbnail[];
-  link: string;
+
+export interface Song {
+  video: Video;
+  musicUrl: string;
 }

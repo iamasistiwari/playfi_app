@@ -4,15 +4,15 @@ import CustomInput from "../sub/CustomInput";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import RecentSongHistroy from "../sub/RecentSongHistroy";
-import { VideoItem } from "@/types/song";
 import useFetch from "@/hooks/useFetch";
 import { searchSongs } from "@/actions/songs";
 import SongTile from "../sub/SongTiles";
 import { SongLoadingSkeleton } from "../sub/LoadingSkeleton";
+import { Video } from "@/types/song";
 
 const SongSearchBar = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const { data, loading, refetch } = useFetch<VideoItem[]>(() =>
+  const { data, loading, refetch, error } = useFetch<Video[]>(() =>
     searchSongs(searchQuery)
   );
   const router = useRouter();
@@ -24,7 +24,7 @@ const SongSearchBar = () => {
         inputRef.current?.blur();
         refetch();
       }
-    }, 500);
+    }, 700);
     return () => clearTimeout(timerId);
   }, [searchQuery]);
 
@@ -32,12 +32,11 @@ const SongSearchBar = () => {
     const timeout = setTimeout(() => {
       inputRef.current?.focus();
     }, 300);
-
     return () => clearTimeout(timeout);
   }, []);
 
   return (
-    <View>
+    <View className="px-4">
       <CustomInput
         inputRef={inputRef}
         placeholder="Search for songs"
@@ -48,15 +47,15 @@ const SongSearchBar = () => {
         icon={<Ionicons name="search-outline" size={20} color="#16a34a" />}
       />
       {loading && <SongLoadingSkeleton />}
-      {searchQuery.length > 0 && !inputRef.current && !loading && !data && (
+      {searchQuery.length > 0 && !loading && data?.length < 1 && (
         <Text className="text-center text-neutral-500 mt-4 font-semibold">
           No results found
         </Text>
       )}
-      {data?.length > 0 && (
-        <View className="gap-5 mt-4">
-          {data?.map((item, index) => (
-            <SongTile data={item} key={index} />
+      {!loading && data?.length > 0 && (
+        <View className="gap-6 mt-8">
+          {data?.map((item) => (
+            <SongTile data={item} key={`${item?.id}`} />
           ))}
         </View>
       )}

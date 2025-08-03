@@ -4,16 +4,15 @@ import { Slot } from "expo-router";
 import { Provider } from "react-redux";
 import { persistor, store } from "@/redux/store";
 import { PersistGate } from "redux-persist/integration/react";
-import Toast from "react-native-toast-message";
-import { toastConfig } from "@/components/sub/CustomToast";
 import {
   configureReanimatedLogger,
   ReanimatedLogLevel,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
+import { Provider as MenuProvider } from "react-native-paper";
 
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
-  strict: false, 
+  strict: false,
 });
 
 export default function Layout() {
@@ -21,9 +20,9 @@ export default function Layout() {
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
         <SafeScreen>
-          {/* @ts-ignore */}
-          <Toast config={toastConfig} />
-          <Slot />
+          <MenuProvider>
+            <Slot />
+          </MenuProvider>
         </SafeScreen>
       </PersistGate>
     </Provider>

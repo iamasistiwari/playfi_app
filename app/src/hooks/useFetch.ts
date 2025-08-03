@@ -15,7 +15,7 @@ export default function useFetch<T>(
       const result = await fetchFunction();
       setData(result);
     } catch (error) {
-      setError("An error occurred while fetching data");
+      setError("Something went wrong");
     } finally {
       setLoading(false);
     }

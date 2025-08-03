@@ -7,7 +7,7 @@ import re
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .utils import youtubeSearch, getYoutubMusicUrl, getExpiryTimeout
+from .utils import youtubeSearch, getYoutubMusicUrl, getExpiryTimeout, format_sentence
 from core.utils import create_response
 from rest_framework import status
 from django.core.cache import cache
@@ -43,11 +43,21 @@ def recentSongs(request):
 @permission_classes([IsAuthenticated])
 def playSong(request):
     songId = request.GET.get("songId", "").replace(" ", "").strip('"')
-    if not songId:
+    if not songId :
         return Response(
             create_response(False, "Query parameter 'songId' is required"),
             status=status.HTTP_404_NOT_FOUND,
         )
+
+    pattern = r'^[a-zA-Z0-9_-]{11}$'
+    is_valid_id = bool(re.match(pattern, songId))
+    
+    if not is_valid_id :
+        return Response(
+            create_response(False, "Youtube video id is not valid"),
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    
     cache_key = f"song_url:{songId}"
     cached_data = cache.get(cache_key)
     if cached_data:
@@ -79,27 +89,29 @@ def playSong(request):
 @permission_classes([IsAuthenticated])
 def searchSongs(request):
     q = request.GET.get("q", "")
+    # clean query
     q = re.sub(r"[^a-zA-Z0-9\s]", "", q)
+    q = q.strip('"')
+
     if not q:
         return Response(
             create_response(False, "Query parameter 'q' is required"),
             status=status.HTTP_404_NOT_FOUND,
         )
-    # clean query
-    q = q.strip('"')
+    
     if len(q) < 1:
         return Response(
             create_response(False, "Query atleast 3 characters"),
             status=status.HTTP_404_NOT_FOUND,
         )
-    
-    print("adfer cleaning query", q)
     # put to user recent search
     histroy_key = f"{request.user.email}_recent_songs"
     songs = cache.get(histroy_key, [])
     if not q in songs:
-        songs.append(q)
-    cache.set(histroy_key, songs, timeout=60 * 60 * 24)  # Cache for 24 hours
+        songs.insert(0, q)
+        del songs[10:]
+
+    cache.set(histroy_key, songs, timeout=60 * 60 * 6)  # Cache for 24 hours
 
     # cache search results
     cache_key = f"song_search:{q.lower().replace(' ', '_')}"
@@ -107,16 +119,19 @@ def searchSongs(request):
 
     if cached_data:
         return Response(
-            create_response(True, "Feteched", cached_data), status=status.HTTP_200_OK
+            create_response(True, "Feteched from cache", cached_data), status=status.HTTP_200_OK
         )
 
     try:
         results = youtubeSearch(q)
-        cache.set(cache_key, results, timeout=60 * 60 * 24)  # Cache for 24 hours
+        for result in results:
+                result["title"] = format_sentence(result["title"])
+        cache.set(cache_key, results, timeout=60 * 60 * 24 * 4)  # Cache for 4 days
         return Response(
             create_response(True, "Feteched", results), status=status.HTTP_200_OK
         )
     except Exception as e:
+        print("Error fetching songs:", e)
         return Response(
             create_response(False, "An error occurred while fetching data"),
             status=status.HTTP_404_NOT_FOUND,

@@ -4,6 +4,23 @@ from youtubesearchpython import VideosSearch
 import yt_dlp
 from urllib.parse import urlparse, parse_qs
 import time
+import re
+
+def format_sentence(sentence: str) -> str:
+    if not sentence:
+        return ""
+
+    # Check if the sentence contains Devanagari (Hindi) characters
+    if re.search(r'[\u0900-\u097F]', sentence):
+        return sentence  # Return as-is if it's in Hindi
+
+    # Continue processing for non-Hindi (likely English) input
+    sentence = re.sub(r'[^a-zA-Z0-9\s]', '', sentence)
+    words = sentence.split()
+    formatted_words = [word.capitalize() for word in words]
+    return " ".join(formatted_words)
+
+
 
 def getExpiryTimeout(music_url: str) -> int:
     try:
@@ -22,18 +39,23 @@ def getExpiryTimeout(music_url: str) -> int:
         return 60 * 60 * 24  # fallback: 24 hours
 
 
-def youtubeSearch(query: str) -> List[dict]:
+def youtubeSearch(query: str) -> List[YoutubeVideoType]:
     videos_search = VideosSearch(query=query, limit=5, region="IND")
     results = videos_search.result()
 
     videos = results.get("result", [])
-    validated_videos = [YoutubeVideoType.model_validate(video) for video in videos]
-    return [video.model_dump() for video in validated_videos]
+    # validated_videos = [YoutubeVideoType.model_validate(video) for video in videos]
+    validated_videos = []
+    for video in videos:
+        try:
+            validated = YoutubeVideoType.model_validate(video)
+            validated_videos.append(validated.model_dump())  
+        except Exception as e:
+            continue
+    return validated_videos
 
 def getYoutubMusicUrl(videoId: str) -> str:
-    print("SONG ID RECEIVED", videoId)
     youtube_url = f"https://www.youtube.com/watch?v={videoId}"
-    print("song url", youtube_url)
     ydl_opts = {
         'format': 'bestaudio/best',
         'quiet': True,

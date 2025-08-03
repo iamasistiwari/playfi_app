@@ -35,7 +35,7 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps extends VariantProps<typeof buttonVariants> {
-  title: string;
+  title?: string;
   onPress?: (event: GestureResponderEvent) => void;
   disabled?: boolean;
   loading?: boolean;
@@ -71,14 +71,16 @@ const CustomButton = React.forwardRef<View, ButtonProps>(
         ) : (
           <>
             {icon && <View>{icon}</View>}
-            <Text
-              className={cn(
-                "text-base font-semibold text-white",
-                titleClassName
-              )}
-            >
-              {title}
-            </Text>
+            {title && (
+              <Text
+                className={cn(
+                  "text-base font-semibold text-white",
+                  titleClassName
+                )}
+              >
+                {title}
+              </Text>
+            )}
           </>
         )}
       </TouchableOpacity>

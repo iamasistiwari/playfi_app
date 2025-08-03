@@ -7,6 +7,7 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
+import SongPlayer from "@/components/main/SongPlayer";
 
 const SearchComp = () => {
   const { id } = useLocalSearchParams();

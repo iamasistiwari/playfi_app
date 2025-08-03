@@ -3,8 +3,9 @@ from typing import List, Optional
 
 
 class ViewCount(BaseModel):
-    text: str
-    short: str
+    text: Optional[str] = ""
+    short: Optional[str] = ""
+
 
 
 class Thumbnail(BaseModel):

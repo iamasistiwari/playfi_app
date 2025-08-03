@@ -1,16 +1,16 @@
-import { View, Text, Alert, ToastAndroid } from "react-native";
-import React, { useState, useEffect } from "react";
-import z, { set } from "zod";
-import CustomInput from "@/components/sub/CustomInput";
 import { CustomButton } from "@/components/sub/CustomButton";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { AppDispatch, RootState } from "@/redux/store";
-import { useDispatch, useSelector } from "react-redux";
-import { AxiosError } from "axios";
+import CustomInput from "@/components/sub/CustomInput";
 import { post } from "@/lib/api";
-import { logout, setUser } from "@/redux/userSlice";
+import { AppDispatch, RootState } from "@/redux/store";
+import { setUser } from "@/redux/user-slice";
+import { Ionicons } from "@expo/vector-icons";
+import { AxiosError } from "axios";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { Text, View } from "react-native";
 import Toast from "react-native-toast-message";
+import { useDispatch, useSelector } from "react-redux";
+import z from "zod";
 
 const loginSchema = z.object({
   email: z.email(),

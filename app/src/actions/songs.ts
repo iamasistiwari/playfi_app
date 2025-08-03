@@ -1,5 +1,6 @@
 import { get } from "@/lib/api";
-import { VideoItem } from "@/types/song";
+import { Video } from "@/types/song";
+import { AxiosError } from "axios";
 
 export const fetchRecentSongs = async () => {
   try {
@@ -11,14 +12,29 @@ export const fetchRecentSongs = async () => {
   }
 };
 
-export const searchSongs = async (query: string): Promise<VideoItem[]> => {
+export const searchSongs = async (query: string): Promise<Video[]> => {
   try {
-    const response = await get("/api/v1/search/songs/", {
+    const response = await get("/api/v1/search/songs", {
       q: query,
     });
     const searchResult = response?.responseData || [];
     return searchResult;
   } catch (error) {
     return [];
+  }
+};
+
+export const getSongUrl = async (songId: string): Promise<string> => {
+  try {
+    const response = await get("/api/v1/playsong/", {
+      songId: songId,
+    });
+    let url = response?.responseData?.url;
+    if (url) {
+      return url;
+    }
+    return "";
+  } catch (error) {
+    return "";
   }
 };

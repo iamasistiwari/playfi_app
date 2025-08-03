@@ -1,9 +1,9 @@
-import React from "react";
-import { CustomButton } from "./CustomButton";
-import { Ionicons } from "@expo/vector-icons";
-import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/redux/store";
-import { logout } from "@/redux/userSlice";
+import { logout } from "@/redux/user-slice";
+import { Ionicons } from "@expo/vector-icons";
+import React from "react";
+import { useDispatch } from "react-redux";
+import { CustomButton } from "./CustomButton";
 
 export default function SignoutButton() {
   const [loading, setloading] = React.useState(false);
