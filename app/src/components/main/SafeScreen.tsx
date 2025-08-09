@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SongPlayer from "./SongPlayer";
 import { usePathname } from "expo-router";
 import { PlayerProvider } from "@/hooks/usePlayer";
+
 const SafeScreen = ({ children }) => {
   const inset = useSafeAreaInsets();
   const pathname = usePathname();

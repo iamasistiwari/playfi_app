@@ -17,8 +17,12 @@ const SongPlayer = () => {
   const { currentSong, queue, loading } = useSelector(
     (state: RootState) => state.songPlayer
   );
-  const { togglePlayPause, isPlaying, player } = usePlayer();
-
+  const {
+    togglePlayPause,
+    isPlaying,
+    player,
+    playerState: { isBuffering },
+  } = usePlayer();
   return (
     <Pressable
       onPress={() => {
@@ -73,10 +77,11 @@ const SongPlayer = () => {
               if (player.currentTime < 10) {
                 player.seekTo(0);
               } else {
+                // add logic to go to previous song
               }
             }}
           />
-          {loading ? (
+          {loading || isBuffering ? (
             <Loader />
           ) : (
             <CustomButton

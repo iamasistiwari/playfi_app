@@ -1,4 +1,4 @@
-import { View, Text, Dimensions, Image } from "react-native";
+import { View, Text, Dimensions, Image, Pressable } from "react-native";
 import React, { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
@@ -11,12 +11,18 @@ import { usePlayer } from "@/hooks/usePlayer";
 import { CustomButton } from "@/components/sub/CustomButton";
 import { Ionicons } from "@expo/vector-icons";
 import Loader from "@/components/sub/Loader";
+import SongSlider from "@/components/sub/SongSlider";
 
 const Song = () => {
   const { currentSong, loading } = useSelector(
     (state: RootState) => state.songPlayer
   );
-  const { togglePlayPause, isPlaying, player } = usePlayer();
+  const {
+    togglePlayPause,
+    isPlaying,
+    player,
+    playerState: { isBuffering },
+  } = usePlayer();
 
   const translateY = useSharedValue(-20);
   const opacity = useSharedValue(0);
@@ -32,62 +38,81 @@ const Song = () => {
   }, []);
 
   return (
-    <Animated.View style={[animatedStyle]}>
-      <View className="px-10 pt-20">
-        <Image
-          source={{ uri: currentSong?.video?.thumbnails?.at(-1)?.url }}
-          style={{
-            width: "100%",
-            height: 300,
-            borderRadius: 10,
-            opacity: 0.75,
-          }}
-        />
-        <View className="flex flex-row gap-x-4 min-w-full items-center justify-center">
-          <CustomButton
-            className="px-0 py-0 h-full opacity-70"
-            variant={"ghost"}
-            icon={<Ionicons name="play-skip-back" size={30} color="#e5e5e5" />}
-            onPress={(e) => {
-              e.stopPropagation();
-              if (player.currentTime < 10) {
-                player.seekTo(0);
-              } else {
-              }
+    <Pressable 
+    onPointerDown={() => {
+      console.log("down")
+    }}
+    onPointerUp={() => {
+      console.log("up")
+    }}
+    >
+      <Animated.View style={[animatedStyle]}>
+        <View className="px-10 pt-20">
+          <Image
+            source={{ uri: currentSong?.video?.thumbnails?.at(-1)?.url }}
+            style={{
+              width: "100%",
+              height: 300,
+              borderRadius: 10,
+              opacity: 0.75,
             }}
           />
-          {loading ? (
-            <Loader />
-          ) : (
+          <View className="flex flex-col items-center justify-center my-10 overflow-hidden">
+            <Text className="text-white text-2xl font-bold max-w-[70vw] text-ellipsis whitespace-nowrap">
+              {currentSong?.video?.title?.slice(0, 28) || "No title"}
+            </Text>
+            <Text className="text-white text-lg">
+              {currentSong?.video?.channel?.name || "No channel"}
+            </Text>
+          </View>
+          <SongSlider />
+
+          <View className="flex flex-row gap-x-4 min-w-full items-center justify-center">
             <CustomButton
-              className="px-0 py-0 h-full"
+              className="px-0 py-0 h-full opacity-70"
+              variant={"ghost"}
+              icon={<Ionicons name="play-skip-back" size={30} color="#e5e5e5" />}
+              onPress={(e) => {
+                e.stopPropagation();
+                if (player.currentTime < 10) {
+                  player.seekTo(0);
+                } else {
+                }
+              }}
+            />
+            {loading || isBuffering ? (
+              <Loader size={50} />
+            ) : (
+              <CustomButton
+                className="px-0 py-0 h-full"
+                variant={"ghost"}
+                icon={
+                  isPlaying ? (
+                    <Ionicons name="pause-circle" size={65} color="#e5e5e5" />
+                  ) : (
+                    <Ionicons name="play-circle" size={65} color="#e5e5e5" />
+                  )
+                }
+                onPress={(e) => {
+                  e.stopPropagation();
+                  togglePlayPause();
+                }}
+              />
+            )}
+            <CustomButton
+              className="px-0 py-0 h-full  opacity-70"
               variant={"ghost"}
               icon={
-                isPlaying ? (
-                  <Ionicons name="pause-circle" size={65} color="#e5e5e5" />
-                ) : (
-                  <Ionicons name="play-circle" size={65} color="#e5e5e5" />
-                )
+                <Ionicons name="play-skip-forward" size={30} color="#e5e5e5" />
               }
               onPress={(e) => {
                 e.stopPropagation();
-                togglePlayPause();
               }}
             />
-          )}
-          <CustomButton
-            className="px-0 py-0 h-full  opacity-70"
-            variant={"ghost"}
-            icon={
-              <Ionicons name="play-skip-forward" size={30} color="#e5e5e5" />
-            }
-            onPress={(e) => {
-              e.stopPropagation();
-            }}
-          />
+          </View>
         </View>
-      </View>
-    </Animated.View>
+      </Animated.View>
+    </Pressable>
   );
 };
 

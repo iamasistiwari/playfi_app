@@ -2,26 +2,30 @@ import { View, TextInput, Text } from "react-native";
 import React, { useEffect, useRef, useState } from "react";
 import CustomInput from "../sub/CustomInput";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import RecentSongHistroy from "../sub/RecentSongHistroy";
 import useFetch from "@/hooks/useFetch";
 import { searchSongs } from "@/actions/songs";
 import SongTile from "../sub/SongTiles";
 import { SongLoadingSkeleton } from "../sub/LoadingSkeleton";
 import { Video } from "@/types/song";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/redux/store";
+import { addToRecentSearch } from "@/redux/song-player";
 
 const SongSearchBar = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const { data, loading, refetch, error } = useFetch<Video[]>(() =>
-    searchSongs(searchQuery)
+  const { data, loading, refetch } = useFetch<Video[]>(() =>
+    searchSongs(searchQuery.trim())
   );
-  const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
   const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     const timerId = setTimeout(() => {
-      if (searchQuery.trim().length > 0) {
+      const query = searchQuery.trim();
+      if (query.length > 0) {
         inputRef.current?.blur();
+        dispatch(addToRecentSearch(query));
         refetch();
       }
     }, 700);

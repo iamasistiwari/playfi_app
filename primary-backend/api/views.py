@@ -7,7 +7,7 @@ import re
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .utils import youtubeSearch, getYoutubMusicUrl, getExpiryTimeout, format_sentence
+from .utils import youtubeSearch, getYoutubeMusicUrl, getExpiryTimeout, format_sentence
 from core.utils import create_response
 from rest_framework import status
 from django.core.cache import cache
@@ -19,23 +19,6 @@ from django.db.models import Q
 from .serializers import PlaylistSerializer, PlaylistDetailSerializer
 from rest_framework.views import APIView
 
-
-@api_view(["GET"])
-@authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
-def recentSongs(request):
-    try:
-        cache_key = f"{request.user.email}_recent_songs"
-        cached_data = cache.get(cache_key, [])
-        return Response(
-            create_response(True, "Feteched", {"recent_search": cached_data}), status=status.HTTP_200_OK
-        )
-
-    except Exception as e:
-        return Response(
-            create_response(False, "An error occurred while fetching search history"),
-            status=status.HTTP_404_NOT_FOUND,
-        )
 
 
 @api_view(["GET"])
@@ -65,7 +48,7 @@ def playSong(request):
             create_response(True, "Feteched", {"url":cached_data}), status=status.HTTP_200_OK
         )
     try:
-        musicUrl = getYoutubMusicUrl(songId)
+        musicUrl = getYoutubeMusicUrl(songId)
         if(musicUrl):
             timeout = getExpiryTimeout(musicUrl)
             cache.set(cache_key, musicUrl, timeout=timeout) 
@@ -77,13 +60,12 @@ def playSong(request):
                 create_response(False, "An error occurred while fetching data"),
                 status=status.HTTP_404_NOT_FOUND,
             )
-    except Exception as e:
+    except Exception as _:
         return Response(
             create_response(False, "An error occurred while fetching data"),
             status=status.HTTP_404_NOT_FOUND,
         )
     
-
 @api_view(["GET"])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
@@ -104,14 +86,6 @@ def searchSongs(request):
             create_response(False, "Query atleast 3 characters"),
             status=status.HTTP_404_NOT_FOUND,
         )
-    # put to user recent search
-    histroy_key = f"{request.user.email}_recent_songs"
-    songs = cache.get(histroy_key, [])
-    if not q in songs:
-        songs.insert(0, q)
-        del songs[10:]
-
-    cache.set(histroy_key, songs, timeout=60 * 60 * 6)  # Cache for 24 hours
 
     # cache search results
     cache_key = f"song_search:{q.lower().replace(' ', '_')}"
@@ -126,7 +100,7 @@ def searchSongs(request):
         results = youtubeSearch(q)
         for result in results:
                 result["title"] = format_sentence(result["title"])
-        cache.set(cache_key, results, timeout=60 * 60 * 24 * 4)  # Cache for 4 days
+        cache.set(cache_key, results, timeout=60 * 60 * 24 * 7)  # Cache for 1 week
         return Response(
             create_response(True, "Feteched", results), status=status.HTTP_200_OK
         )
@@ -136,8 +110,6 @@ def searchSongs(request):
             create_response(False, "An error occurred while fetching data"),
             status=status.HTTP_404_NOT_FOUND,
         )
-
-
 
 
 @api_view(["POST"])

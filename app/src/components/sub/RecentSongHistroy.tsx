@@ -1,23 +1,15 @@
 import { Text, TouchableOpacity, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { fetchRecentSongs } from "@/actions/songs";
-import { HistroySongLoadingSkeleton } from "./LoadingSkeleton";
-import useFetch from "@/hooks/useFetch";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 
 interface RecentSongHistroyProps {
   onPress: (text: string) => void;
 }
 const RecentSongHistroy = ({ onPress }: RecentSongHistroyProps) => {
-  const { data, error, loading } = useFetch<string[]>(fetchRecentSongs, true);
-
-  if (loading) {
-    return <HistroySongLoadingSkeleton />;
-  }
-
-  return error?.length > 0 ? (
-    <Text className="font-bold text-center my-10 text-red-500">{error}</Text>
-  ) : (
+  const data = useSelector((state: RootState) => state.songPlayer.recentSearch);
+  return (
     <ScrollView
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{

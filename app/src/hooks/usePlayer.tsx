@@ -13,12 +13,24 @@ interface PlayerContextProps {
   togglePlayPause: () => void;
   isPlaying: boolean;
   player: AudioPlayer;
+  playerState: {
+    position: number;
+    duration: number;
+    isBuffering: boolean;
+  };
+  seekTo: (value: number) => void;
 }
 
 const PlayerContext = createContext<PlayerContextProps>({
   togglePlayPause: () => {},
   isPlaying: false,
   player: useAudioPlayer(),
+  playerState: {
+    position: 0,
+    duration: 0,
+    isBuffering: false,
+  },
+  seekTo: () => {},
 });
 
 export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
@@ -27,6 +39,29 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   const { currentSong } = useSelector((state: RootState) => state.songPlayer);
   const player = useAudioPlayer(currentSong?.musicUrl || null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [playerState, setPlayerState] = useState({
+    position: 0,
+    duration: 0,
+    isBuffering: false,
+  });
+
+  useEffect(() => {
+    const listener = player?.addListener("playbackStatusUpdate", (status) => {
+      setPlayerState({
+        position: status.currentTime,
+        duration: status.duration,
+        isBuffering: status.isBuffering,
+      });
+    });
+    return () => {
+      listener?.remove();
+    };
+  }, [player]);
+
+  const seekTo = (value: number) => {
+    player?.seekTo(value);
+  };
+
   useEffect(() => {
     if (currentSong?.musicUrl && firstMount.current) {
       player.play();
@@ -36,6 +71,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
       firstMount.current = true;
     }
   }, [currentSong]);
+
   const togglePlayPause = () => {
     if (isPlaying) {
       player.pause();
@@ -51,6 +87,8 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
         togglePlayPause,
         isPlaying,
         player,
+        playerState,
+        seekTo,
       }}
     >
       {children}
