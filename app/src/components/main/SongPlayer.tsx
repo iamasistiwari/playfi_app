@@ -59,7 +59,7 @@ const SongPlayer = () => {
               className="rounded-xl"
             />
             <View className="flex flex-col px-2 justify-center">
-              <MarqueeText text={currentSong?.video?.title} />
+              <MarqueeText text={currentSong?.video?.title || ""} />
               <Text className="text-neutral-500 text-sm">
                 {currentSong?.video?.channel?.name}
               </Text>

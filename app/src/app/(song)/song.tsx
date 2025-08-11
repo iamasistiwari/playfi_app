@@ -1,6 +1,6 @@
-import { View, Text, Dimensions, Image, Pressable } from "react-native";
-import React, { useEffect } from "react";
-import { useSelector } from "react-redux";
+import { View, Text, Image, Pressable } from "react-native";
+import React, { useEffect} from "react";
+import {  useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import Animated, {
   useSharedValue,
@@ -9,9 +9,10 @@ import Animated, {
 } from "react-native-reanimated";
 import { usePlayer } from "@/hooks/usePlayer";
 import { CustomButton } from "@/components/sub/CustomButton";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import Loader from "@/components/sub/Loader";
 import SongSlider from "@/components/sub/SongSlider";
+import CustomMenu from "@/components/sub/Menu";
 
 const Song = () => {
   const { currentSong, loading } = useSelector(
@@ -37,17 +38,23 @@ const Song = () => {
     translateY.value = withTiming(0, { duration: 500 });
   }, []);
 
+  
+
   return (
-    <Pressable 
-    onPointerDown={() => {
-      console.log("down")
-    }}
-    onPointerUp={() => {
-      console.log("up")
-    }}
+    <Pressable
+      onPointerDown={() => {
+        console.log("down");
+      }}
+      onPointerUp={() => {
+        console.log("up");
+      }}
     >
       <Animated.View style={[animatedStyle]}>
-        <View className="px-10 pt-20">
+
+        <View className="px-10 pt-20 ">
+          <View className="absolute top-4 right-4">
+            <CustomMenu video={currentSong?.video} />
+          </View>
           <Image
             source={{ uri: currentSong?.video?.thumbnails?.at(-1)?.url }}
             style={{
@@ -56,12 +63,13 @@ const Song = () => {
               borderRadius: 10,
               opacity: 0.75,
             }}
-          />
+          />  
+          
           <View className="flex flex-col items-center justify-center my-10 overflow-hidden">
-            <Text className="text-white text-2xl font-bold max-w-[70vw] text-ellipsis whitespace-nowrap">
-              {currentSong?.video?.title?.slice(0, 28) || "No title"}
+            <Text className="text-center text-white text-2xl font-bold max-w-[70vw] text-ellipsis whitespace-nowrap">
+              {currentSong?.video?.title?.slice(0, 25) || "No title"}
             </Text>
-            <Text className="text-white text-lg">
+            <Text className="text-neutral-400 text-lg">
               {currentSong?.video?.channel?.name || "No channel"}
             </Text>
           </View>
@@ -71,7 +79,9 @@ const Song = () => {
             <CustomButton
               className="px-0 py-0 h-full opacity-70"
               variant={"ghost"}
-              icon={<Ionicons name="play-skip-back" size={30} color="#e5e5e5" />}
+              icon={
+                <Ionicons name="play-skip-back" size={30} color="#e5e5e5" />
+              }
               onPress={(e) => {
                 e.stopPropagation();
                 if (player.currentTime < 10) {

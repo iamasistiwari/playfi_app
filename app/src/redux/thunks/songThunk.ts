@@ -1,28 +1,57 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { getSongUrl } from "@/actions/songs";
-import { Video, Song } from "@/types/song";
+import { Video } from "@/types/song";
+import * as FileSystem from "expo-file-system";
 
-export let previousSongId: string | null = null;
+async function downloadAndMove(musicUrl: string, videoId: string) {
+  const tempFileUri = `${FileSystem.cacheDirectory}${videoId}_temp_audio.mp4`;
+  const finalUri = `${FileSystem.documentDirectory}${videoId}.mp4`;
+
+  try {
+    // Delete old file if exists
+    const oldFile = await FileSystem.getInfoAsync(finalUri);
+    if (oldFile.exists) {
+      await FileSystem.deleteAsync(finalUri, { idempotent: true });
+    }
+
+    // Step 1: Download to temp
+    const res = await FileSystem.downloadAsync(musicUrl, tempFileUri);
+
+    // Step 2: Move to permanent storage
+    await FileSystem.moveAsync({
+      from: res.uri,
+      to: finalUri,
+    });
+  } catch (error) {}
+}
+
 export const setSongAsync = createAsyncThunk(
   "songPlayer/setSongAsync",
   async (video: Video) => {
-    if (previousSongId && previousSongId == video.id) {
-      return null;
-    }
-    const musicUrl = await getSongUrl(video.id);
-    const songWithUrl: Song = {
-      video: video,
-      musicUrl,
-    };
-    if (musicUrl.length < 0) {
+    const fileUri = `${FileSystem.documentDirectory}${video.id}.mp4`;
+
+    // Check if already downloaded
+    const fileInfo = await FileSystem.getInfoAsync(fileUri);
+    if (fileInfo.exists) {
       return {
-        song: songWithUrl,
-        error: "Failed to fetch music url",
+        song: {
+          video,
+          musicUrl: fileUri,
+        },
+        error: null,
       };
     }
-    previousSongId = video.id;
+
+    const musicUrl = await getSongUrl(video.id);
+    if (!musicUrl) {
+      return { song: null, error: "No music URL found" };
+    }
+    downloadAndMove(musicUrl, video.id);
     return {
-      song: songWithUrl,
+      song: {
+        video,
+        musicUrl,
+      },
       error: null,
     };
   }

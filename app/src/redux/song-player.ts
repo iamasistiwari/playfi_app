@@ -27,7 +27,7 @@ const songPlayerSlice = createSlice({
       const term = action.payload;
       state.recentSearch = state.recentSearch.filter((item) => item !== term);
       state.recentSearch.unshift(term);
-      if (state.recentSearch.length > 10) {
+      if (state.recentSearch.length > 15) {
         state.recentSearch.pop();
       }
     },

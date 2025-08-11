@@ -6,6 +6,22 @@
     "web": {
       "output": "static"
     },
+    "ios": {
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"]
+      }
+    },
+    "android": {
+      "package": "com.iamasistiwari.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./app.jpg",
+        "backgroundColor": "#121212"
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
+    },
     "plugins": [
       [
         "expo-router",
@@ -16,7 +32,9 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone."
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone.",
+          "backgroundAudioPermission": "Allow $(PRODUCT_NAME) to play audio in the background.",
+          "audioFocusPermission": "Allow $(PRODUCT_NAME) to control audio focus."
         }
       ]
     ],

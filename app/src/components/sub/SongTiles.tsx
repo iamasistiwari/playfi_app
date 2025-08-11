@@ -10,10 +10,10 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { Video } from "@/types/song";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
-import { previousSongId, setSongAsync } from "@/redux/thunks/songThunk";
+import { setSongAsync } from "@/redux/thunks/songThunk";
 import { Menu } from "react-native-paper";
 import { addSongToQueue, removeSongFromQueue } from "@/redux/song-player";
-import { Portal, Dialog, Button } from "react-native-paper";
+import CustomMenu from "./Menu";
 
 const SongTile = ({ data }: { data: Video }) => {
   const { queue } = useSelector((state: RootState) => state.songPlayer);
@@ -37,9 +37,7 @@ const SongTile = ({ data }: { data: Video }) => {
   }, []);
 
   const handlePlay = () => {
-    if (!(previousSongId === data.id)) {
-      dispatch(setSongAsync(data));
-    }
+    dispatch(setSongAsync(data));
   };
 
   return (
@@ -62,78 +60,9 @@ const SongTile = ({ data }: { data: Video }) => {
             {data.viewCount.short} • {data.publishedTime}
           </Text>
         </View>
-        <Menu
-          visible={menuVisible}
-          onDismiss={() => setmenuVisible(false)}
-          anchor={
-            <Pressable
-              onPress={(e) => {
-                e.stopPropagation();
-                setmenuVisible(true);
-              }}
-            >
-              <Ionicons
-                name="ellipsis-vertical"
-                size={28}
-                color="#d4d4d4"
-                style={{ marginHorizontal: 12 }}
-              />
-            </Pressable>
-          }
-        >
-          <Menu.Item
-            onPress={() => {}}
-            leadingIcon={() => (
-              <Ionicons name="heart" size={24} color="#16a34a" />
-            )}
-            title="Like"
-          />
-          <Menu.Item
-            onPress={() => {
-              if (songInQueue) {
-                dispatch(removeSongFromQueue(data.id));
-              } else {
-                dispatch(addSongToQueue(data));
-              }
-            }}
-            leadingIcon={() => (
-              <MaterialIcons name="queue-music" size={24} color="#16a34a" />
-            )}
-            title={songInQueue ? "Pop from Queue" : "Add to Queue"}
-          />
-          <Menu.Item
-            onPress={() => {
-              setaddToPlaylistDialogVisible(true);
-              setmenuVisible(false);
-            }}
-            title="Add to Playlist"
-          />
-        </Menu>
+        <CustomMenu video={data} />
       </Pressable>
-      <Portal>
-        <Dialog
-          visible={addToPlaylistDialogVisible}
-          onDismiss={() => setaddToPlaylistDialogVisible(false)}
-        >
-          <Dialog.Title>Add to Playlist</Dialog.Title>
-          <Dialog.Content>
-            <Text>Add this song to your playlist?</Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setaddToPlaylistDialogVisible(false)}>
-              Cancel
-            </Button>
-            <Button
-              onPress={() => {
-                // TODO: Implement add to playlist logic
-                setaddToPlaylistDialogVisible(false);
-              }}
-            >
-              Confirm
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+      
     </Animated.View>
   );
 };

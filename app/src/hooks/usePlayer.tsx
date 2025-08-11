@@ -1,5 +1,10 @@
 import { RootState } from "@/redux/store";
-import { AudioPlayer, useAudioPlayer } from "expo-audio";
+import {
+  AudioPlayer,
+  useAudioPlayer,
+  setAudioModeAsync,
+  setIsAudioActiveAsync,
+} from "expo-audio";
 import React, {
   createContext,
   useContext,
@@ -35,15 +40,14 @@ const PlayerContext = createContext<PlayerContextProps>({
 
 export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   const firstMount = useRef(false);
-
   const { currentSong } = useSelector((state: RootState) => state.songPlayer);
-  const player = useAudioPlayer(currentSong?.musicUrl || null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playerState, setPlayerState] = useState({
     position: 0,
     duration: 0,
     isBuffering: false,
   });
+  const player = useAudioPlayer(currentSong.musicUrl);
 
   useEffect(() => {
     const listener = player?.addListener("playbackStatusUpdate", (status) => {
@@ -63,13 +67,25 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    if (currentSong?.musicUrl && firstMount.current) {
-      player.play();
-      player.seekTo(0.5);
-      setIsPlaying(true);
-    } else {
-      firstMount.current = true;
-    }
+    setAudioModeAsync({
+      shouldPlayInBackground: true,
+      interruptionMode: "doNotMix",
+      interruptionModeAndroid: "doNotMix",
+    });
+    setIsAudioActiveAsync(true);
+  }, []);
+
+  useEffect(() => {
+    const prepareAudio = async () => {
+      if (currentSong?.musicUrl && firstMount.current) {
+        player.seekTo(0.5);
+        player.play();
+        setIsPlaying(true);
+      } else {
+        firstMount.current = true;
+      }
+    };
+    prepareAudio();
   }, [currentSong]);
 
   const togglePlayPause = () => {

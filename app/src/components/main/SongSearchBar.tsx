@@ -14,7 +14,7 @@ import { addToRecentSearch } from "@/redux/song-player";
 
 const SongSearchBar = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const { data, loading, refetch } = useFetch<Video[]>(() =>
+  const { data, loading, refetch, resetData } = useFetch<Video[]>(() =>
     searchSongs(searchQuery.trim())
   );
   const dispatch = useDispatch<AppDispatch>();
@@ -27,6 +27,8 @@ const SongSearchBar = () => {
         inputRef.current?.blur();
         dispatch(addToRecentSearch(query));
         refetch();
+      }else{
+        resetData();
       }
     }, 700);
     return () => clearTimeout(timerId);
