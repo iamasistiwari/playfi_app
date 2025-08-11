@@ -23,7 +23,6 @@ class UserSignupSerializer(serializers.ModelSerializer):
         validated_data["password"] = make_password(validated_data["password"])
         return super().create(validated_data)
 
-
 class UserLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
@@ -42,13 +41,6 @@ class UserLoginSerializer(serializers.Serializer):
         if not check_password(password, user.password):
             raise serializers.ValidationError({"password": "Incorrect password."})
         return user
-        # return {
-        #     "id": user.id,
-        #     "email": user.email,
-        #     "name": user.name,
-        #     "joined_at": user.joined_at,
-        # }
-
 
 class SongSerializer(serializers.ModelSerializer):
     class Meta:
@@ -58,6 +50,9 @@ class SongSerializer(serializers.ModelSerializer):
 
 class PlaylistSerializer(serializers.ModelSerializer):
     admin = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    isGlobal = serializers.BooleanField(default=False)
+
     joined_users = serializers.PrimaryKeyRelatedField(
         many=True, queryset=User.objects.all(), required=False
     )
@@ -65,22 +60,9 @@ class PlaylistSerializer(serializers.ModelSerializer):
         many=True, queryset=Songs.objects.all(), required=False, write_only=True
     )
 
-    first_song = serializers.SerializerMethodField(read_only=True)
-
-    def get_first_song(self, obj):
-        first_song = obj.songs.first()
-        if first_song:
-            return {
-                "id": first_song.id,
-                "title": first_song.title,
-                "thumbnails": first_song.thumbnails.get("url"),
-            }
-        return None
-
-
     class Meta:
         model = Playlists
-        fields = ['id', 'playlistName', 'admin', 'joined_users', 'songs', 'created_at', "first_song"]
+        fields = ['id', 'playlistName', 'admin', 'joined_users', 'songs', 'created_at', "isGlobal"]
 
     def create(self, validated_data):
         songs = validated_data.pop('songs', [])
@@ -95,6 +77,20 @@ class PlaylistSerializer(serializers.ModelSerializer):
         return playlist
 
 
+class PlaylistMiniDetailsSerializer(serializers.ModelSerializer):
+    songs = serializers.SerializerMethodField()
+    joined_users = UserSignupSerializer(many=True, read_only=True)
+    admin = UserSignupSerializer(read_only=True)
+
+    class Meta:
+        model = Playlists
+        fields = ['id', 'playlistName', 'admin', 'joined_users', 'songs', 'created_at', "isGlobal"]
+
+    def get_songs(self, obj):
+        top_songs = obj.songs.all()[:4]
+        return SongSerializer(top_songs, many=True).data
+
+
 class PlaylistDetailSerializer(serializers.ModelSerializer):
     songs = SongSerializer(many=True, read_only=True)
     joined_users = UserSignupSerializer(many=True, read_only=True)
@@ -102,4 +98,4 @@ class PlaylistDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Playlists
-        fields = ['id', 'playlistName', 'admin', 'joined_users', 'songs', 'created_at']
+        fields = ['id', 'playlistName', 'admin', 'joined_users', 'songs', 'created_at', "isGlobal"]

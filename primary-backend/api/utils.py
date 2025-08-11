@@ -52,7 +52,7 @@ def youtubeSearch(query: str) -> List[YoutubeVideoType]:
             continue
     return validated_videos
 
-def getYoutubeMusicUrl(videoId: str, max_attempts: int = 4) -> Optional[str]:
+def getYoutubeMusicUrl(videoId: str, max_attempts: int = 10) -> Optional[str]:
     
     for attempt in range(1, max_attempts + 1):
         try:
@@ -67,7 +67,7 @@ def getYoutubeMusicUrl(videoId: str, max_attempts: int = 4) -> Optional[str]:
         
         # Wait before retrying (exponential backoff)
         if attempt < max_attempts:
-            time.sleep(1)
+            time.sleep((attempt/2))
     
     print(f"\n❌ ALL {max_attempts} ATTEMPTS FAILED for video ID: {videoId}")
     return None

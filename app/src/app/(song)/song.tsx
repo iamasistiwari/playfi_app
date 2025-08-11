@@ -1,6 +1,6 @@
 import { View, Text, Image, Pressable } from "react-native";
-import React, { useEffect} from "react";
-import {  useSelector } from "react-redux";
+import React, { useEffect } from "react";
+import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import Animated, {
   useSharedValue,
@@ -9,7 +9,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { usePlayer } from "@/hooks/usePlayer";
 import { CustomButton } from "@/components/sub/CustomButton";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import Loader from "@/components/sub/Loader";
 import SongSlider from "@/components/sub/SongSlider";
 import CustomMenu from "@/components/sub/Menu";
@@ -38,8 +38,6 @@ const Song = () => {
     translateY.value = withTiming(0, { duration: 500 });
   }, []);
 
-  
-
   return (
     <Pressable
       onPointerDown={() => {
@@ -50,7 +48,6 @@ const Song = () => {
       }}
     >
       <Animated.View style={[animatedStyle]}>
-
         <View className="px-10 pt-20 ">
           <View className="absolute top-4 right-4">
             <CustomMenu video={currentSong?.video} />
@@ -63,8 +60,8 @@ const Song = () => {
               borderRadius: 10,
               opacity: 0.75,
             }}
-          />  
-          
+          />
+
           <View className="flex flex-col items-center justify-center my-10 overflow-hidden">
             <Text className="text-center text-white text-2xl font-bold max-w-[70vw] text-ellipsis whitespace-nowrap">
               {currentSong?.video?.title?.slice(0, 25) || "No title"}

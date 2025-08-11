@@ -47,7 +47,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
     duration: 0,
     isBuffering: false,
   });
-  const player = useAudioPlayer(currentSong.musicUrl);
+  const player = useAudioPlayer(currentSong?.musicUrl);
 
   useEffect(() => {
     const listener = player?.addListener("playbackStatusUpdate", (status) => {
@@ -77,7 +77,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const prepareAudio = async () => {
-      if (currentSong?.musicUrl && firstMount.current) {
+      if ((currentSong?.musicUrl?.length || 0) > 0 && firstMount.current) {
         player.seekTo(0.5);
         player.play();
         setIsPlaying(true);

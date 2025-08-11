@@ -16,10 +16,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import Playlists, Songs, User
 from django.db.models import Q
-from .serializers import PlaylistSerializer, PlaylistDetailSerializer
+from .serializers import PlaylistSerializer, PlaylistDetailSerializer, PlaylistMiniDetailsSerializer
 from rest_framework.views import APIView
-
-
 
 @api_view(["GET"])
 @authentication_classes([JWTAuthentication])
@@ -111,6 +109,38 @@ def searchSongs(request):
             status=status.HTTP_404_NOT_FOUND,
         )
 
+@api_view(["POST"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def makePlaylistGlobal(request):
+    print(request.user)
+    playlist_id = request.data.get("playlist_id")
+    if not playlist_id:
+        return Response(create_response(False, "playlist_id is required"), status=status.HTTP_400_BAD_REQUEST)
+    try:
+        playlist = Playlists.objects.get(id=playlist_id)
+        if playlist.isGlobal:
+            return Response(create_response(False, "Playlist is already global"), status=status.HTTP_400_BAD_REQUEST)
+        if playlist.admin != request.user:
+            return Response(create_response(False, "Only admins can make playlist global"), status=status.HTTP_403_FORBIDDEN)
+        playlist.isGlobal = True
+        playlist.save()
+        return Response(create_response(True, "Playlist made global successfully", {
+            "playlist_id": playlist.id,
+            "isGlobal": playlist.isGlobal
+        }), status=status.HTTP_200_OK)
+    except Playlists.DoesNotExist:
+        return Response(create_response(False, "playlist_id not found"), status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(["GET"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def globalPlaylists(request):
+    playlists = Playlists.objects.filter(isGlobal=True)
+    serializer = PlaylistMiniDetailsSerializer(playlists, many=True)
+    return Response(create_response(True, "Feteched", serializer.data))
+
 
 @api_view(["POST"])
 @authentication_classes([JWTAuthentication])
@@ -148,8 +178,6 @@ def addUserToPlaylist(request):
     playlist.save()
 
     return Response(create_response(True, f"{user_email} added to playlist successfully"), status=status.HTTP_200_OK)
-
-
 
 @api_view(["POST"])
 @authentication_classes([JWTAuthentication])
@@ -204,7 +232,7 @@ class UserSinglePlaylistsView(APIView):
         if not pk:
             return Response(create_response(False, "Playlist ID is required in URL"), status=status.HTTP_400_BAD_REQUEST)
         playlist = get_object_or_404(
-            Playlists.objects.filter(Q(admin=user) | Q(joined_users=user)).distinct(),
+            Playlists.objects.filter(Q(admin=user) | Q(joined_users=user) | Q(isGlobal=True)).distinct(),
             pk=pk
         )
         serializer = PlaylistDetailSerializer(playlist)

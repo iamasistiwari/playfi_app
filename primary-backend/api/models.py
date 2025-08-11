@@ -55,22 +55,24 @@ class Songs(models.Model):
     accessibility = models.JSONField()
 
     def __str__(self):
-        return self.title
+        return f"{self.id} - {self.title}"
 
 class Playlists(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, )
     playlistName = models.CharField(max_length=255)
     
     admin = models.ForeignKey(User, related_name="admin_playlists", on_delete=models.CASCADE)
 
     joined_users = models.ManyToManyField(User, related_name="joined_playlists", blank=True)
 
+    isGlobal = models.BooleanField(default=False)
+
     songs = models.ManyToManyField(Songs, related_name="playlists", blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.name
+        return self.playlistName
 
 
 

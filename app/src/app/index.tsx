@@ -2,6 +2,7 @@ import { CustomButton } from "@/components/sub/CustomButton";
 import CustomInput from "@/components/sub/CustomInput";
 import { post } from "@/lib/api";
 import { AppDispatch, RootState } from "@/redux/store";
+import { fetchAllPlaylistAsync } from "@/redux/thunks/playlistThunk";
 import { setUser } from "@/redux/user-slice";
 import { Ionicons } from "@expo/vector-icons";
 import { AxiosError } from "axios";
@@ -107,6 +108,7 @@ const Index = () => {
   useEffect(() => {
     if (token) {
       router.replace("/home");
+      dispatch(fetchAllPlaylistAsync());
     }
   }, [token]);
 

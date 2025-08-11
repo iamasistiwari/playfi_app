@@ -4,24 +4,14 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { View, Text, Image, StyleSheet, Pressable } from "react-native";
-import React, { useEffect, useState } from "react";
-import { Ionicons } from "@expo/vector-icons";
-import { MaterialIcons } from "@expo/vector-icons";
+import React, { useEffect } from "react";
 import { Video } from "@/types/song";
-import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from "@/redux/store";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/redux/store";
 import { setSongAsync } from "@/redux/thunks/songThunk";
-import { Menu } from "react-native-paper";
-import { addSongToQueue, removeSongFromQueue } from "@/redux/song-player";
 import CustomMenu from "./Menu";
 
 const SongTile = ({ data }: { data: Video }) => {
-  const { queue } = useSelector((state: RootState) => state.songPlayer);
-  const songInQueue = queue.some((item) => item.id === data.id);
-  const [addToPlaylistDialogVisible, setaddToPlaylistDialogVisible] =
-    useState(false);
-
-  const [menuVisible, setmenuVisible] = useState(false);
   const translateX = useSharedValue(-20);
   const opacity = useSharedValue(0);
   const dispatch = useDispatch<AppDispatch>();
@@ -62,7 +52,6 @@ const SongTile = ({ data }: { data: Video }) => {
         </View>
         <CustomMenu video={data} />
       </Pressable>
-      
     </Animated.View>
   );
 };

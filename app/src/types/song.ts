@@ -6,6 +6,22 @@ export interface SongSearchResponse {
   responseData: Video[];
 }
 
+interface User {
+  email: string;
+  name: string;
+  joined_at: string;
+}
+
+export interface Playlist {
+  id: string;
+  playlistName: string;
+  admin: User;
+  joined_users: User[];
+  songs: Video[];
+  created_at: string;
+  isGlobal: boolean;
+}
+
 export interface Video {
   type: string;
   id: string;
@@ -17,7 +33,7 @@ export interface Video {
     short: string;
   };
   thumbnails: Thumbnail[];
-  // richThumbnail: Thumbnail;
+  richThumbnail: Thumbnail;
   channel: {
     name: string;
     id: string;
