@@ -32,7 +32,7 @@ export const fetchSinglePlaylist = async (
       return playlistCache.get(playlistId);
     }
     const response = await get(`/api/v1/playlist/${playlistId}`);
-    const searchResult = (response?.responseData ?? null) as Playlist | null;
+    const searchResult: Playlist | null = response?.responseData ?? null;
     if (searchResult) {
       playlistCache.set(playlistId, searchResult);
     }

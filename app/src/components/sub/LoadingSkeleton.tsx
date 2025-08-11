@@ -2,7 +2,7 @@ import { View, Text } from "react-native";
 import React from "react";
 import { cn } from "@/lib/utils";
 
-const LoadingSkeleton = ({ className }: { className?: string }) => {
+export default function LoadingSkeleton({ className }: { className?: string }) {
   return (
     <View
       className={cn(
@@ -11,33 +11,7 @@ const LoadingSkeleton = ({ className }: { className?: string }) => {
       )}
     ></View>
   );
-};
-
-export default LoadingSkeleton;
-
-export const HistroySongLoadingSkeleton = ({
-  className,
-}: {
-  className?: string;
-}) => {
-  return (
-    <View
-      className={cn(
-        "flex flex-row flex-wrap gap-2 mt-8 items-center",
-        className
-      )}
-    >
-      <LoadingSkeleton className="w-56" />
-      <LoadingSkeleton className="w-32" />
-      <LoadingSkeleton className="w-32" />
-      <LoadingSkeleton className="w-56" />
-      <LoadingSkeleton className="w-52" />
-      <LoadingSkeleton className="w-32" />
-      <LoadingSkeleton className="w-32" />
-      <LoadingSkeleton className="w-60" />
-    </View>
-  );
-};
+}
 
 export const SongLoadingSkeleton = ({ className }: { className?: string }) => {
   return (
@@ -49,7 +23,6 @@ export const SongLoadingSkeleton = ({ className }: { className?: string }) => {
     >
       <LoadingSkeleton className="w-full h-[75px] bg-neutral-800" />
       <LoadingSkeleton className="w-full h-[75px] bg-neutral-800" />
-
       <LoadingSkeleton className="w-full h-[75px] bg-neutral-800" />
       <LoadingSkeleton className="w-full h-[75px] bg-neutral-800" />
       <LoadingSkeleton className="w-full h-[75px] bg-neutral-800" />

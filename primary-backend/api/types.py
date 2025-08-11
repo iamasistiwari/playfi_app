@@ -7,7 +7,6 @@ class ViewCount(BaseModel):
     short: Optional[str] = ""
 
 
-
 class Thumbnail(BaseModel):
     url: str
     width: int
@@ -39,7 +38,7 @@ class YoutubeVideoType(BaseModel):
     duration: str
     viewCount: ViewCount
     thumbnails: List[Thumbnail]
-    # richThumbnail: Optional[Thumbnail] = None
+    richThumbnail: Optional[Thumbnail] = None
     channel: Channel
     accessibility: Accessibility
     link: str
