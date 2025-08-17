@@ -30,6 +30,7 @@ const SongPlayer = () => {
           router.push(`/song`);
         }
       }}
+      className="backdrop-blur-3xl"
     >
       <LinearGradient
         colors={["#171717", "#121212", "#0a0a0a"]}
@@ -44,7 +45,6 @@ const SongPlayer = () => {
           justifyContent: "space-between",
           alignItems: "center",
           borderRadius: 10,
-
           flexDirection: "row",
         }}
       >

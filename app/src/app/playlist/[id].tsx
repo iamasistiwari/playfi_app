@@ -103,12 +103,13 @@ const FullPlaylistView = () => {
       </View>
 
       {/* song list */}
-      <View className="h-[65vh] mt-4">
+      <View className="h-[66vh] py-4">
         <FlatList
           data={playlist?.songs}
           keyExtractor={(item) => item.id}
           ItemSeparatorComponent={() => <View style={{ height: 14 }} />}
           renderItem={({ item }) => <SongTile data={item} key={item.id} />}
+          showsVerticalScrollIndicator={false}
         />
       </View>
     </View>

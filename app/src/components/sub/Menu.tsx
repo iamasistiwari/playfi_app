@@ -40,6 +40,10 @@ const CustomMenu = ({ video }: { video: Video }) => {
 
   const dispatch = useDispatch<AppDispatch>();
 
+  const [songActionLoading, setSongActionLoading] = useState<boolean[]>(
+    Array(userPlaylists.length).fill(false)
+  );
+
   useEffect(() => {
     if (userPlaylists.length > 0 && !loading) {
       const map: Map<string, boolean> = new Map();
@@ -117,11 +121,12 @@ const CustomMenu = ({ video }: { video: Video }) => {
               showsVerticalScrollIndicator={false}
               style={{ height: 150 }}
             >
-              {userPlaylists.map((playlist) => (
+              {userPlaylists.map((playlist, index) => (
                 <CustomButton
                   title={playlist.playlistName}
                   key={playlist.id}
                   variant={"ghost"}
+                  loading={songActionLoading[index]}
                   icon={
                     isSongPresent?.get(playlist.id) ? (
                       <FontAwesome
@@ -139,18 +144,28 @@ const CustomMenu = ({ video }: { video: Video }) => {
                   }
                   className="p-0 justify-start"
                   onPress={async () => {
+                    setSongActionLoading(
+                      songActionLoading.map((item, i) =>
+                        i === index ? true : item
+                      )
+                    );
                     const isPresent = isSongPresent?.get(playlist.id);
                     await addOrRemoveSongFromPlaylist(
                       isPresent,
                       playlist.id,
                       video
-                    )
+                    );
                     dispatch(userPlaylistAsync());
                     dispatch(
                       fetchSinglePlaylistAsync({
                         playlistId: playlist.id as string,
                         fresh: true,
                       })
+                    );
+                    setSongActionLoading(
+                      songActionLoading.map((item, i) =>
+                        i === index ? false : item
+                      )
                     );
                   }}
                 />

@@ -6,6 +6,10 @@ from urllib.parse import urlparse, parse_qs
 import time
 import re
 from typing import Optional
+import subprocess
+import sys
+
+# Run pip install -U yt-dlp
 
 def format_sentence(sentence: str) -> str:
     if not sentence:
@@ -56,6 +60,14 @@ def getYoutubeMusicUrl(videoId: str, max_attempts: int = 10) -> Optional[str]:
     
     for attempt in range(1, max_attempts + 1):
         try:
+            if(attempt == 5):
+                try:
+                    print("📦 Attempting to upgrade yt-dlp...")
+                    subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", "yt-dlp"])
+                    print("✅ yt-dlp upgraded successfully")
+                except subprocess.CalledProcessError as e:
+                    print(f"⚠️ Failed to upgrade yt-dlp: {e}")
+    
             result = _extractAudioUrl(videoId, attempt)
             if result:
                 print(f"✅ SUCCESS on attempt {attempt}!")
@@ -70,6 +82,7 @@ def getYoutubeMusicUrl(videoId: str, max_attempts: int = 10) -> Optional[str]:
             time.sleep((attempt/2))
     
     print(f"\n❌ ALL {max_attempts} ATTEMPTS FAILED for video ID: {videoId}")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", "yt-dlp"])
     return None
 
 
