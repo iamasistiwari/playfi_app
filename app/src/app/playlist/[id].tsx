@@ -103,7 +103,7 @@ const FullPlaylistView = () => {
       </View>
 
       {/* song list */}
-      <View className="h-[66vh] py-4">
+      <View className="h-[70vh] py-4">
         <FlatList
           data={playlist?.songs}
           keyExtractor={(item) => item.id}

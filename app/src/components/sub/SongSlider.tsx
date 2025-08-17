@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Slider from "@react-native-community/slider";
 import { usePlayer } from "@/hooks/usePlayer";
+import { formatTime } from "@/lib/customfn";
 
 const SongSlider = () => {
   const {
@@ -29,12 +30,6 @@ const SongSlider = () => {
       </View>
     </View>
   );
-};
-
-const formatTime = (seconds: number) => {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s < 10 ? "0" : ""}${s}`;
 };
 
 const styles = StyleSheet.create({

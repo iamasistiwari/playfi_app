@@ -2,7 +2,7 @@ import { RootState } from "@/redux/store";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
-import React from "react";
+import React, { useRef } from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import { useSelector } from "react-redux";
 import { CustomButton } from "../sub/CustomButton";
@@ -10,10 +10,12 @@ import Loader from "../sub/Loader";
 import LoadingSkeleton from "../sub/LoadingSkeleton";
 import { MarqueeText } from "../sub/MarqueeText";
 import { usePlayer } from "@/hooks/usePlayer";
+import { formatTime } from "@/lib/customfn";
 
 const SongPlayer = () => {
   const pathname = usePathname();
   const router = useRouter();
+  const renderTimes = useRef(0);
   const { currentSong, queue, loading } = useSelector(
     (state: RootState) => state.songPlayer
   );
@@ -21,8 +23,9 @@ const SongPlayer = () => {
     togglePlayPause,
     isPlaying,
     player,
-    playerState: { isBuffering },
+    playerState: { isBuffering, position, duration },
   } = usePlayer();
+  renderTimes.current++;
   return (
     <Pressable
       onPress={() => {
@@ -41,7 +44,7 @@ const SongPlayer = () => {
           width: "100%",
           height: 70,
           position: "absolute",
-          bottom: 70,
+          bottom: pathname.includes("/playlist") ? 30 : 70,
           justifyContent: "space-between",
           alignItems: "center",
           borderRadius: 10,
@@ -60,9 +63,20 @@ const SongPlayer = () => {
             />
             <View className="flex flex-col px-2 justify-center">
               <MarqueeText text={currentSong?.video?.title || ""} />
-              <Text className="text-neutral-500 text-sm">
-                {currentSong?.video?.channel?.name}
-              </Text>
+              <View className="flex-row items-center gap-2">
+                <Text className="text-neutral-500 text-sm font-medium">
+                  {currentSong?.video?.channel?.name}
+                </Text>
+                <View className="flex flex-row ">
+                  <Text className="text-neutral-400 text-sm">
+                    {formatTime(position)}
+                  </Text>
+                  <Text className="text-neutral-400 text-sm">
+                    {" "}
+                    / {formatTime(duration)}
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
         )}

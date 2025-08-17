@@ -1,8 +1,25 @@
-import { View, Image } from "react-native";
+import { View, Image, Text } from "react-native";
 import React from "react";
 
 const PhotoGrid = ({ collageImages }: { collageImages: string[] }) => {
-  if (collageImages.length === 0) return null;
+  if (collageImages.length === 0)
+    return (
+      <View
+        style={{
+          width: 130,
+          height: 130,
+          borderRadius: 8,
+          overflow: "hidden",
+          backgroundColor: "transparent",
+          borderColor: "#737373",
+          borderWidth: 0.5,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Text className="text-neutral-500 text-sm font-medium">No Songs</Text>
+      </View>
+    );
   return (
     <View
       style={{ width: 130, height: 130, borderRadius: 8, overflow: "hidden" }}

@@ -41,7 +41,7 @@ const CustomPortal = ({
   visible,
   handleClose,
   onSubmit,
-  actionTitle = "Ok",
+  actionTitle = "Done",
   autoClose = true,
 }: Props) => {
   const [portalVisible, setPortalVisible] = useState(false);

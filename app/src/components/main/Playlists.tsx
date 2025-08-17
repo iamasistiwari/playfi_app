@@ -42,9 +42,6 @@ const Playlists = () => {
             contentContainerStyle={{ gap: 10 }}
           >
             {item.playlists.map((playlist) => {
-              if (playlist.songs.length === 0) {
-                return null;
-              }
               return <PlaylistFolder key={playlist.id} playlist={playlist} />;
             })}
           </ScrollView>

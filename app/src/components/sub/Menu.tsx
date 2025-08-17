@@ -118,8 +118,10 @@ const CustomMenu = ({ video }: { video: Video }) => {
         dialogContent={
           <View>
             <ScrollView
-              showsVerticalScrollIndicator={false}
+              showsVerticalScrollIndicator={true}
               style={{ height: 150 }}
+              indicatorStyle="white"
+              persistentScrollbar={true}
             >
               {userPlaylists.map((playlist, index) => (
                 <CustomButton
