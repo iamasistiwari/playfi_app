@@ -90,7 +90,6 @@ def searchSongs(request):
     # cache search results
     cache_key = f"song_search:{q.lower().replace(' ', '_')}"
     cached_data = cache.get(cache_key)
-
     if cached_data:
         return Response(
             create_response(True, "Feteched from cache", cached_data), status=status.HTTP_200_OK
@@ -98,8 +97,10 @@ def searchSongs(request):
 
     try:
         results = youtubeSearch(q)
+
         for result in results:
-                result["title"] = format_sentence(result["title"])
+            channelName = result["channel"]["name"]
+            result["title"] = format_sentence(result["title"], channelName)
         cache.set(cache_key, results, timeout=60 * 60 * 24 * 7)  # Cache for 1 week
         return Response(
             create_response(True, "Feteched", results), status=status.HTTP_200_OK

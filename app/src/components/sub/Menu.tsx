@@ -15,6 +15,7 @@ import CustomPortal from "./CustomPortal";
 import CreatePlaylist from "./CreatePlaylist";
 import {
   fetchSinglePlaylistAsync,
+  globalPlaylistAsync,
   userPlaylistAsync,
 } from "@/redux/thunks/playlistThunk";
 import AntDesign from "@expo/vector-icons/AntDesign";
@@ -158,6 +159,7 @@ const CustomMenu = ({ video }: { video: Video }) => {
                       video
                     );
                     dispatch(userPlaylistAsync());
+                    dispatch(globalPlaylistAsync());
                     dispatch(
                       fetchSinglePlaylistAsync({
                         playlistId: playlist.id as string,

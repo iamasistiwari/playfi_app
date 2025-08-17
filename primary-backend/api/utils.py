@@ -11,19 +11,40 @@ import sys
 
 # Run pip install -U yt-dlp
 
-def format_sentence(sentence: str) -> str:
+def format_sentence(sentence: str, channelName: str) -> str:
+    removable_words = [
+        "official", "audio", "lyrics", "music", "video", "clip", "latest", 
+        "song", "songs", "punjabi", "hindi", "new", "full", "hd", "ft", "feat"
+    ]
+    
+    # Add channel name words
+    if channelName:
+        channel_words = [word.strip() for word in channelName.split() if word.strip()]
+        removable_words.extend(channel_words)
+    
+    # Add common year patterns (optional)
+    # removable_words.extend([str(year) for year in range(2020, 2025)])
+    
     if not sentence:
         return ""
-
-    # Check if the sentence contains Devanagari (Hindi) characters
+    
+    # If the sentence contains Devanagari (Hindi) characters, return as-is
     if re.search(r'[\u0900-\u097F]', sentence):
-        return sentence  # Return as-is if it's in Hindi
+        return sentence.strip()
 
-    # Continue processing for non-Hindi (likely English) input
+    # Remove special characters except spaces and alphanumerics
     sentence = re.sub(r'[^a-zA-Z0-9\s]', '', sentence)
+
+    # Split into words and filter
     words = sentence.split()
-    formatted_words = [word.capitalize() for word in words]
-    return " ".join(formatted_words)
+    removable_set = set(word.lower() for word in removable_words)
+    filtered_words = [word for word in words if word.lower() not in removable_set]
+
+    # Capitalize and join
+    capitalized_words = [word.capitalize() for word in filtered_words]
+    finalSentence = " ".join(capitalized_words)
+
+    return finalSentence
 
 def getExpiryTimeout(music_url: str) -> int:
     try:
