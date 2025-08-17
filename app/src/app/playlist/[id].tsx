@@ -1,32 +1,25 @@
 import { View, Text, FlatList } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { CustomButton } from "@/components/sub/CustomButton";
 import { Ionicons } from "@expo/vector-icons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-
-import { fetchSinglePlaylist } from "@/actions/playlist";
-import { Playlist } from "@/types/song";
 import Loader from "@/components/sub/Loader";
 import SongTile from "@/components/sub/SongTiles";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/redux/store";
+import { setCurrentPlaylist } from "@/redux/playlist-slice";
 
 const FullPlaylistView = () => {
-  const [playlist, setPlaylist] = useState<Playlist | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { currentPlaylist: playlist, loading } = useSelector(
+    (state: RootState) => state.playlist
+  );
+  const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const { id } = useLocalSearchParams();
 
-  const fetchPlaylist = async () => {
-    setLoading(true);
-    const res = await fetchSinglePlaylist(id as string);
-    if (res) {
-      setPlaylist(res);
-    }
-    setLoading(false);
-  };
-
   useEffect(() => {
-    fetchPlaylist();
+    dispatch(setCurrentPlaylist(id as string));
   }, []);
 
   if (loading) {
@@ -52,7 +45,7 @@ const FullPlaylistView = () => {
   }
 
   return (
-    <View className="px-4 pt-1">
+    <View className="px-4 pt-1 bg-primary">
       {/* navbar part */}
       <View className="h-16 flex-row items-center justify-between">
         <CustomButton
@@ -88,13 +81,13 @@ const FullPlaylistView = () => {
 
       {/* second bar */}
       <View className="flex-row items-center justify-between">
-        <Text className="text-white text-base font-medium">
+        <Text className="text-neutral-400 text-base font-medium">
           {playlist?.songs?.length} songs
         </Text>
         <View className="flex flex-row gap-x-6">
           <CustomButton
             loading={false}
-            className="text-base p-0"
+            className="text-base p-0 opacity-60"
             variant={"ghost"}
             title="Shuffle"
             icon={<MaterialIcons name="shuffle" size={24} color="white" />}
@@ -104,16 +97,17 @@ const FullPlaylistView = () => {
             variant={"ghost"}
             className="p-0"
             title=""
-            icon={<Ionicons name="play" size={24} color="white" />}
+            icon={<Ionicons name="play" size={24} color="#a3a3a3" />}
           />
         </View>
       </View>
 
       {/* song list */}
-      <View className="h-[60vh]">
+      <View className="h-[65vh] mt-4">
         <FlatList
           data={playlist?.songs}
           keyExtractor={(item) => item.id}
+          ItemSeparatorComponent={() => <View style={{ height: 14 }} />}
           renderItem={({ item }) => <SongTile data={item} key={item.id} />}
         />
       </View>

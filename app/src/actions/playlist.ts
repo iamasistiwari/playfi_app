@@ -42,13 +42,32 @@ export const fetchSinglePlaylist = async (
   }
 };
 
-export const addSongToPlaylist = async (
+export const addOrRemoveSongFromPlaylist = async (
+  isPresent: boolean,
   playlistId: string,
   song: Video
 ): Promise<{
   status: false;
   message: string;
 }> => {
+  if(isPresent){
+    try {
+      const response = await post("/api/v1/remove/song", {
+        playlist_id: playlistId,
+        song_id: song.id,
+      });
+      const isRemoved = response?.responseStatus?.status || false;
+      return {
+        status: isRemoved,
+        message: response?.responseStatus?.message || "",
+      };
+    } catch (error) {
+      return {
+        status: false,
+        message: "Error removing song from playlist",
+      };
+    }
+  }
   try {
     const response = await post("/api/v1/add/song", {
       playlist_id: playlistId,
@@ -66,3 +85,25 @@ export const addSongToPlaylist = async (
     };
   }
 };
+
+export async function createPlaylistAsync(playlistName: string): Promise<{
+  status: boolean;
+  message: string;
+}> {
+  try {
+    const response = await post("/api/v1/playlists/", {
+      playlistName: playlistName,
+    });
+    const isCreated = response?.responseStatus?.status || false;
+    return {
+      status: isCreated,
+      message: response?.responseStatus?.message || "",
+    };
+    
+  } catch (error) {
+    return {
+      status: false,
+      message: "Error creating playlist",
+    };
+  }
+}

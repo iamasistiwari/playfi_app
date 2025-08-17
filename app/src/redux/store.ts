@@ -4,6 +4,9 @@ import { persistReducer, persistStore } from "redux-persist";
 import userSlice from "./user-slice";
 import playlistReducer from "./playlist-slice";
 import songPlayerSlice from "./song-player";
+import { enableMapSet } from "immer";
+
+enableMapSet();
 
 const rootReducer = combineReducers({
   user: userSlice,

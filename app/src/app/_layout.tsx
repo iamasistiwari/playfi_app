@@ -9,6 +9,7 @@ import {
   ReanimatedLogLevel,
 } from "react-native-reanimated";
 import { Provider as MenuProvider } from "react-native-paper";
+import Toast from 'react-native-toast-message';
 
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
@@ -20,6 +21,7 @@ export default function Layout() {
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
         <SafeScreen>
+          <Toast />
           <MenuProvider>
             <Slot />
           </MenuProvider>

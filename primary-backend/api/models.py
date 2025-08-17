@@ -39,8 +39,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
 
-
-
 class Songs(models.Model):
     id = models.CharField(primary_key=True, max_length=100)
     type = models.CharField(max_length=50)

@@ -9,5 +9,6 @@ urlpatterns = [
     path('playlist/<uuid:pk>/', views.UserSinglePlaylistsView.as_view()), 
     path("add/song", views.addSongsToPlaylist, name="addSongsToPlaylist"),
     path("add/user", views.addUserToPlaylist, name="addUserToPlaylist"),
+    path("remove/song", views.removeSongFromPlaylist, name="removeSongFromPlaylist"),
     path("playsong/", views.playSong, name="playSong"),
 ]

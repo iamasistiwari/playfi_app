@@ -1,8 +1,10 @@
+import email
 from rest_framework.decorators import (
     api_view,
     permission_classes,
     authentication_classes,
 )
+import uuid
 import re
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
@@ -179,6 +181,46 @@ def addUserToPlaylist(request):
 
     return Response(create_response(True, f"{user_email} added to playlist successfully"), status=status.HTTP_200_OK)
 
+
+@api_view(["POST"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def removeSongFromPlaylist(request):
+    playlist_id = request.data.get("playlist_id")
+    song_id = request.data.get("song_id")
+
+    if not playlist_id or not song_id:
+        return Response(create_response(False, "playlist_id and song_id are required"), status=status.HTTP_400_BAD_REQUEST)
+
+    # Validate UUID
+    try:
+        _ = uuid.UUID(str(playlist_id))
+    except (ValueError, TypeError):
+        return Response(
+            create_response(False, "Invalid playlist_id format"),
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    try:
+        playlist = Playlists.objects.get(id=playlist_id)
+        song = Songs.objects.get(id=song_id)
+
+        if not playlist.songs.filter(id=song_id).exists():
+            return Response(create_response(False, "Song not found in playlist"), status=status.HTTP_404_NOT_FOUND)
+
+        if playlist.admin != request.user and not playlist.joined_users.filter(email=request.user.email).exists():
+            return Response(create_response(False, "Only admins or joined users can remove songs from playlist"), status=status.HTTP_403_FORBIDDEN)
+        
+        playlist.songs.remove(song)
+        return Response(create_response(True, "Song removed from playlist successfully"), status=status.HTTP_200_OK)
+
+    except Playlists.DoesNotExist:
+        return Response(create_response(False, "playlist_id not found"), status=status.HTTP_404_NOT_FOUND)
+        
+    except Songs.DoesNotExist:
+        return Response(create_response(False, "Song not found"), status=status.HTTP_404_NOT_FOUND)
+
+
+
 @api_view(["POST"])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
@@ -189,20 +231,33 @@ def addSongsToPlaylist(request):
     if not playlist_id or not song_data:
         return Response(create_response(False, "playlist_id and song_data are required"), status=status.HTTP_400_BAD_REQUEST)
 
+    # Validate UUID
+    try:
+        _ = uuid.UUID(str(playlist_id))
+    except (ValueError, TypeError):
+        return Response(
+            create_response(False, "Invalid playlist_id format"),
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     try:
         playlist = Playlists.objects.get(id=playlist_id)
     except Playlists.DoesNotExist:
         return Response(create_response(False, "playlist_id not found"), status=status.HTTP_404_NOT_FOUND)
 
-    
-
     song_id = song_data.get("id")
+
     if not song_id:
         return Response(create_response(False, "Song ID is required in song_data"), status=status.HTTP_400_BAD_REQUEST)
-    
+
     if playlist.songs.filter(id=song_id).exists():
         return Response(create_response(False, "Song already in playlist"), status=status.HTTP_208_ALREADY_REPORTED)
 
+    isJoined = playlist.joined_users.filter(email=request.user.email).exists()
+    isAdmin = playlist.admin == request.user
+
+    if not isAdmin and not isJoined:
+        return Response(create_response(False, "Only admins or joined users can add songs to playlist"), status=status.HTTP_403_FORBIDDEN)
 
     # Try to get the song
     song, created = Songs.objects.get_or_create(
@@ -268,14 +323,13 @@ class UserSinglePlaylistsView(APIView):
         playlist.delete()
         return Response(create_response(True, f"{playlist.name} deleted"), status=status.HTTP_204_NO_CONTENT)
 
-
 class UserPlaylistsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
         playlists = Playlists.objects.filter(Q(admin=user) | Q(joined_users=user)).distinct()
-        serializer = PlaylistSerializer(playlists, many=True)
+        serializer = PlaylistMiniDetailsSerializer(playlists, many=True)
         return Response(create_response(True, "Feteched", serializer.data), status=status.HTTP_200_OK)
 
     def post(self, request):

@@ -1,4 +1,4 @@
-import { View, Text } from "react-native";
+import { View, Text, ScrollView } from "react-native";
 import React from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
@@ -9,22 +9,48 @@ const Playlists = () => {
     (state: RootState) => state.playlist
   );
 
+  if (loading) {
+    return <Text className="text-white text-xl">Loading......</Text>;
+  }
+
   return (
-    <View>
-      {/* user playlists */}
-
-      {/* downloaded playlists */}
-
-      {/* global playlists */}
-      <View>
-        {globalPlaylists.map((playlist) => {
-          if (playlist.songs.length === 0) {
-            return null;
-          }
-          return <PlaylistFolder key={playlist.id} playlist={playlist} />;
-        })}
-      </View>
-    </View>
+    <ScrollView showsVerticalScrollIndicator={false} className="max-h-[60vh] p-4">
+      {[
+        {
+          id: 1,
+          playlistName: "User Playlists",
+          playlists: userPlaylists,
+        },
+        // {
+        //   id: 2,
+        //   playlistName: "Downloaded Playlists",
+        //   playlists: [],
+        // },
+        {
+          id: 3,
+          playlistName: "Global Playlists",
+          playlists: globalPlaylists,
+        },
+      ].map((item) => (
+        <View className="gap-1 mt-4" key={item.id}>
+          <Text className="text-white text-xl font-semibold">
+            {item.playlistName}
+          </Text>
+          <ScrollView
+            horizontal={true}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 10 }}
+          >
+            {item.playlists.map((playlist) => {
+              if (playlist.songs.length === 0) {
+                return null;
+              }
+              return <PlaylistFolder key={playlist.id} playlist={playlist} />;
+            })}
+          </ScrollView>
+        </View>
+      ))}
+    </ScrollView>
   );
 };
 

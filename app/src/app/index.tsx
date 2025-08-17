@@ -9,6 +9,7 @@ import { AxiosError } from "axios";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Text, View } from "react-native";
+import Toast from "react-native-toast-message";
 import { useDispatch, useSelector } from "react-redux";
 import z from "zod";
 
@@ -25,6 +26,7 @@ const signUpSchema = z.object({
 const Index = () => {
   const router = useRouter();
   const token = useSelector((state: RootState) => state.user.token);
+
   const dispatch = useDispatch<AppDispatch>();
   const [loading, setloading] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
@@ -40,11 +42,11 @@ const Index = () => {
       if (!isSignup) {
         const zodValidate = loginSchema.safeParse(userDetails);
         if (!zodValidate.success) {
-          // return Toast.show({
-          //   type: "error",
-          //   text1: "Invalid data.Try again",
-          //   position: "top",
-          // });
+          return Toast.show({
+            type: "error",
+            text1: "Invalid data.Try again",
+            position: "top",
+          });
         }
         const res = await post("/api/auth/login", {
           email: userDetails.email,
@@ -64,22 +66,22 @@ const Index = () => {
       } else {
         const zodValidate = signUpSchema.safeParse(userDetails);
         if (!zodValidate.success) {
-          // return Toast.show({
-          //   type: "error",
-          //   text1: "Invalid data. Try again",
-          //   position: "top",
-          // });
+          return Toast.show({
+            type: "error",
+            text1: "Invalid data. Try again",
+            position: "top",
+          });
         }
         await post("/api/auth/signup", {
           name: userDetails.name,
           email: userDetails.email,
           password: userDetails.password,
         });
-        // Toast.show({
-        //   type: "success",
-        //   text1: "Signup Successful! Now Login...",
-        //   position: "top",
-        // });
+        Toast.show({
+          type: "success",
+          text1: "Signup Successful! Now Login...",
+          position: "top",
+        });
         setUserDetails({ name: "", email: "", password: "" });
         setIsSignup(false);
       }
@@ -107,8 +109,8 @@ const Index = () => {
 
   useEffect(() => {
     if (token) {
-      router.replace("/home");
       dispatch(fetchAllPlaylistAsync());
+      router.replace("/home");
     }
   }, [token]);
 
