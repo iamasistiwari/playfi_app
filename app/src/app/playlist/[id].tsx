@@ -1,5 +1,5 @@
 import { View, Text, FlatList } from "react-native";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { CustomButton } from "@/components/sub/CustomButton";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,6 +9,8 @@ import SongTile from "@/components/sub/SongTiles";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
 import { setCurrentPlaylist } from "@/redux/playlist-slice";
+import { setSongQueue } from "@/redux/song-player";
+import { playNextAsync } from "@/redux/thunks/songThunk";
 
 const FullPlaylistView = () => {
   const { currentPlaylist: playlist, loading } = useSelector(
@@ -17,6 +19,16 @@ const FullPlaylistView = () => {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const [playPlaylistLoading, setplayPlaylistLoading] = useState(false);
+  const { currentSong } = useSelector((state: RootState) => state.songPlayer);
+  const [isPlayPlaylistPressed, setIsPlayPlaylistPressed] = useState(false);
+
+  useEffect(() => {
+    const isPress = playlist?.songs?.some(
+      (item) => item.id === currentSong?.video?.id
+    );
+    setIsPlayPlaylistPressed(isPress);
+  }, [playlist]);
 
   useEffect(() => {
     dispatch(setCurrentPlaylist(id as string));
@@ -93,11 +105,36 @@ const FullPlaylistView = () => {
             icon={<MaterialIcons name="shuffle" size={24} color="white" />}
           />
           <CustomButton
-            loading={false}
+            loading={playPlaylistLoading}
             variant={"ghost"}
             className="p-0"
             title=""
-            icon={<Ionicons name="play" size={24} color="#a3a3a3" />}
+            icon={
+              isPlayPlaylistPressed ? (
+                <Ionicons name="pause" size={24} color="white" />
+              ) : (
+                <Ionicons name="play" size={24} color="white" />
+              )
+            }
+            onPress={async () => {
+              if (isPlayPlaylistPressed) {
+                return;
+              }
+              setplayPlaylistLoading(true);
+              dispatch(setSongQueue(playlist.songs));
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              dispatch(playNextAsync());
+              setIsPlayPlaylistPressed(true);
+              setplayPlaylistLoading(false);
+            }}
+            onLongPress={async () => {
+              setplayPlaylistLoading(true);
+              dispatch(setSongQueue(playlist.songs));
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              dispatch(playNextAsync());
+              setIsPlayPlaylistPressed(true);
+              setplayPlaylistLoading(false);
+            }}
           />
         </View>
       </View>

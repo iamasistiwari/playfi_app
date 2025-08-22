@@ -1,5 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 let cachedToken: string | null = null;
+
+export const resetStorage = async () => {
+  cachedToken = null;
+  await AsyncStorage.clear();
+};
 export const getToken = async (): Promise<string | null> => {
   try {
     if (cachedToken) {

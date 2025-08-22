@@ -7,6 +7,7 @@ interface songPlayerState {
   queue: Video[];
   loading: boolean;
   recentSearch: string[];
+  lastSession: Video[];
 }
 
 const initialState: songPlayerState = {
@@ -14,6 +15,7 @@ const initialState: songPlayerState = {
   queue: [],
   loading: false,
   recentSearch: [],
+  lastSession: [],
 };
 
 const songPlayerSlice = createSlice({
@@ -32,12 +34,28 @@ const songPlayerSlice = createSlice({
       }
     },
 
+    setSongQueue(state, action: PayloadAction<Video[]>) {
+      state.queue = action.payload;
+    },
+
     addSongToQueue(state, action: PayloadAction<Video>) {
+      if (!Array.isArray(state.queue)) {
+        state.queue = [];
+      }
       state.queue = state.queue.filter((song) => song.id !== action.payload.id);
       state.queue.push(action.payload);
     },
     removeSongFromQueue(state, action: PayloadAction<string>) {
+      if (!Array.isArray(state.queue)) {
+        state.queue = [];
+      }
       state.queue = state.queue.filter((song) => song.id !== action.payload);
+    },
+    resetSongPlayer(state) {
+      state.recentSearch = [];
+      state.lastSession = [];
+      state.currentSong = null;
+      state.queue = [];
     },
   },
   extraReducers: (builder) => {
@@ -66,5 +84,10 @@ const songPlayerSlice = createSlice({
 });
 
 export default songPlayerSlice.reducer;
-export const { addSongToQueue, removeSongFromQueue, addToRecentSearch } =
-  songPlayerSlice.actions;
+export const {
+  addSongToQueue,
+  removeSongFromQueue,
+  addToRecentSearch,
+  setSongQueue,
+  resetSongPlayer,
+} = songPlayerSlice.actions;

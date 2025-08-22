@@ -1,4 +1,4 @@
-import { get } from "@/lib/api";
+import { get, post } from "@/lib/api";
 import { Video } from "@/types/song";
 
 export const searchSongs = async (query: string): Promise<Video[]> => {
@@ -25,5 +25,20 @@ export const getSongUrl = async (songId: string): Promise<string> => {
     return "";
   } catch (error) {
     return "";
+  }
+};
+
+export const renameSongAction = async (
+  songId: string,
+  newTitle: string
+): Promise<boolean> => {
+  try {
+    const response = await post("/api/v1/update/songTitle", {
+      song_id: songId,
+      title: newTitle,
+    });
+    return response?.responseStatus?.status || false;
+  } catch (error) {
+    return false;
   }
 };

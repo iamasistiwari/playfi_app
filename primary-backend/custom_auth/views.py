@@ -53,7 +53,8 @@ def handleLogin(request):
                         "token": access_token,
                         "user": {
                             "name": user.name,
-                            "email": user.email
+                            "email": user.email,
+                            "isAdmin": user.is_superuser,
                         }
                     },
                 ),

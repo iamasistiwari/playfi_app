@@ -1,4 +1,5 @@
-import { RootState } from "@/redux/store";
+import { AppDispatch, RootState } from "@/redux/store";
+import { playNextAsync } from "@/redux/thunks/songThunk";
 import {
   AudioPlayer,
   useAudioPlayer,
@@ -12,7 +13,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 interface PlayerContextProps {
   togglePlayPause: () => void;
@@ -42,6 +43,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   const firstMount = useRef(false);
   const { currentSong } = useSelector((state: RootState) => state.songPlayer);
   const [isPlaying, setIsPlaying] = useState(false);
+  const dispatch = useDispatch<AppDispatch>();
   const [playerState, setPlayerState] = useState({
     position: 0,
     duration: 0,
@@ -56,6 +58,10 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
         duration: status.duration,
         isBuffering: status.isBuffering,
       });
+      if (status.didJustFinish) {
+        setIsPlaying(false);
+        dispatch(playNextAsync());
+      }
     });
     return () => {
       listener?.remove();

@@ -17,8 +17,8 @@ const rootReducer = combineReducers({
 const persistConfig = {
   key: "root",
   storage: AsyncStorage,
-  whitelist: ["user", "songPlayer"],
-  blacklist: ["playlist"],
+  whitelist: ["user", "songPlayer", "playlist"],
+  // blacklist: ["playlist"],
 };
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 

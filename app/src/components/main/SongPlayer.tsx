@@ -1,31 +1,32 @@
-import { RootState } from "@/redux/store";
+import { AppDispatch, RootState } from "@/redux/store";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
 import React, { useRef } from "react";
 import { Image, Pressable, Text, View } from "react-native";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { CustomButton } from "../sub/CustomButton";
 import Loader from "../sub/Loader";
 import LoadingSkeleton from "../sub/LoadingSkeleton";
-import { MarqueeText } from "../sub/MarqueeText";
 import { usePlayer } from "@/hooks/usePlayer";
 import { formatTime } from "@/lib/customfn";
+import { playNextAsync } from "@/redux/thunks/songThunk";
+import SongImage from "../sub/SongImage";
 
 const SongPlayer = () => {
   const pathname = usePathname();
   const router = useRouter();
-  const renderTimes = useRef(0);
-  const { currentSong, queue, loading } = useSelector(
+  const { currentSong, loading } = useSelector(
     (state: RootState) => state.songPlayer
   );
+  const dispatch = useDispatch<AppDispatch>();
   const {
     togglePlayPause,
     isPlaying,
-    player,
     playerState: { isBuffering, position, duration },
+    seekTo,
   } = usePlayer();
-  renderTimes.current++;
+
   return (
     <Pressable
       onPress={() => {
@@ -55,27 +56,30 @@ const SongPlayer = () => {
           <LoadingSkeleton className="w-60 h-14 bg-neutral-800" />
         ) : (
           <View className="w-[220px]  flex flex-row overflow-hidden">
-            <Image
-              src={currentSong?.video?.thumbnails?.[0]?.url}
-              width={60}
-              height={60}
-              className="rounded-xl"
-            />
+            <SongImage url={currentSong?.video?.thumbnails?.[0]?.url} />
             <View className="flex flex-col px-2 justify-center">
-              <MarqueeText text={currentSong?.video?.title || ""} />
+              <Text
+                numberOfLines={1}
+                className="text-white text-base max-w-[40vw] font-medium"
+              >
+                {currentSong?.video?.title || "No Song Playing"}
+              </Text>
               <View className="flex-row items-center gap-2">
                 <Text className="text-neutral-500 text-sm font-medium">
-                  {currentSong?.video?.channel?.name}
+                  {currentSong?.video?.channel?.name || ""}
                 </Text>
-                <View className="flex flex-row ">
-                  <Text className="text-neutral-400 text-sm">
-                    {formatTime(position)}
-                  </Text>
-                  <Text className="text-neutral-400 text-sm">
-                    {" "}
-                    / {formatTime(duration)}
-                  </Text>
-                </View>
+
+                {duration > 0 && (
+                  <View className="flex flex-row ">
+                    <Text className="text-neutral-400 text-sm">
+                      {formatTime(position)}
+                    </Text>
+                    <Text className="text-neutral-400 text-sm">
+                      {" "}
+                      / {formatTime(duration)}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
           </View>
@@ -88,11 +92,7 @@ const SongPlayer = () => {
             icon={<Ionicons name="play-skip-back" size={28} color="#e5e5e5" />}
             onPress={(e) => {
               e.stopPropagation();
-              if (player.currentTime < 10) {
-                player.seekTo(0);
-              } else {
-                // add logic to go to previous song
-              }
+              seekTo(0);
             }}
           />
           {loading || isBuffering ? (
@@ -122,6 +122,7 @@ const SongPlayer = () => {
             }
             onPress={(e) => {
               e.stopPropagation();
+              dispatch(playNextAsync());
             }}
           />
         </View>

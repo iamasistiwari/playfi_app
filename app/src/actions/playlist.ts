@@ -50,7 +50,7 @@ export const addOrRemoveSongFromPlaylist = async (
   status: false;
   message: string;
 }> => {
-  if(isPresent){
+  if (isPresent) {
     try {
       const response = await post("/api/v1/remove/song", {
         playlist_id: playlistId,
@@ -99,7 +99,6 @@ export async function createPlaylistAsync(playlistName: string): Promise<{
       status: isCreated,
       message: response?.responseStatus?.message || "",
     };
-    
   } catch (error) {
     return {
       status: false,

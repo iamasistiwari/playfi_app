@@ -116,10 +116,19 @@ def searchSongs(request):
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
 def makePlaylistGlobal(request):
-    print(request.user)
     playlist_id = request.data.get("playlist_id")
+
     if not playlist_id:
         return Response(create_response(False, "playlist_id is required"), status=status.HTTP_400_BAD_REQUEST)
+    
+    # Validate UUID
+    try:
+        _ = uuid.UUID(str(playlist_id))
+    except (ValueError, TypeError):
+        return Response(
+            create_response(False, "Invalid playlist_id format"),
+            status=status.HTTP_400_BAD_REQUEST
+        )
     try:
         playlist = Playlists.objects.get(id=playlist_id)
         if playlist.isGlobal:
@@ -135,15 +144,13 @@ def makePlaylistGlobal(request):
     except Playlists.DoesNotExist:
         return Response(create_response(False, "playlist_id not found"), status=status.HTTP_404_NOT_FOUND)
 
-
 @api_view(["GET"])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
-def globalPlaylists(request):
+def globalPlaylists(_):
     playlists = Playlists.objects.filter(isGlobal=True)
     serializer = PlaylistMiniDetailsSerializer(playlists, many=True)
     return Response(create_response(True, "Feteched", serializer.data))
-
 
 @api_view(["POST"])
 @authentication_classes([JWTAuthentication])
@@ -155,6 +162,15 @@ def addUserToPlaylist(request):
 
     if not playlist_id or not user_email:
         return Response(create_response(False, "playlist_id and user_email are required"), status=status.HTTP_400_BAD_REQUEST)
+    
+    # Validate UUID
+    try:
+        _ = uuid.UUID(str(playlist_id))
+    except (ValueError, TypeError):
+        return Response(
+            create_response(False, "Invalid playlist_id format"),
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     try:
         playlist = Playlists.objects.get(id=playlist_id)
@@ -182,6 +198,59 @@ def addUserToPlaylist(request):
 
     return Response(create_response(True, f"{user_email} added to playlist successfully"), status=status.HTTP_200_OK)
 
+@api_view(["POST"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def updateSongTitle(request):
+    song_id = request.data.get("song_id")
+    title = request.data.get("title")
+
+    if not request.user.is_superuser:
+            return Response(
+                {"success": False, "message": "Only superusers are allowed"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+    if not song_id or not title:
+        return Response(create_response(False, "playlist_id, song_id and title are required"), status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        song = Songs.objects.get(id=song_id)
+        song.title = title
+        song.save()
+        return Response(create_response(True, "Song title updated successfully"), status=status.HTTP_200_OK)
+    except Songs.DoesNotExist:
+        return Response(create_response(False, "song_id not found"), status=status.HTTP_404_NOT_FOUND)
+
+
+
+
+@api_view(["POST"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def makeUserAdmin(request):
+    if not request.user.is_superuser:
+        return Response(create_response(False, "Only superusers can promote users"), status=status.HTTP_403_FORBIDDEN)
+
+    user_id = request.data.get("user_id")
+    try:
+        user = User.objects.get(id=user_id)
+        user.is_staff = True
+        user.is_superuser = True
+        user.save()
+        return Response(create_response(True, f"User {user.username} is now an admin."), status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return Response(create_response(False, "User not found."), status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(["GET"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def checkIsAdmin(request):
+    admin = {request.user.is_staff or request.user.is_superuser}
+    if admin:
+        return Response(create_response(True, "you are superuser"), status=status.HTTP_200_OK)
+    return Response(create_response(False, "you are not superuser"), status=status.HTTP_200_OK)
 
 @api_view(["POST"])
 @authentication_classes([JWTAuthentication])
@@ -219,7 +288,6 @@ def removeSongFromPlaylist(request):
         
     except Songs.DoesNotExist:
         return Response(create_response(False, "Song not found"), status=status.HTTP_404_NOT_FOUND)
-
 
 
 @api_view(["POST"])

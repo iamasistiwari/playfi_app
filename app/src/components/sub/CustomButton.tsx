@@ -3,8 +3,8 @@ import {
   TouchableOpacity,
   Text,
   ActivityIndicator,
-  GestureResponderEvent,
   View,
+  TouchableOpacityProps,
 } from "react-native";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
@@ -34,10 +34,10 @@ const buttonVariants = cva(
   }
 );
 
-export interface ButtonProps extends VariantProps<typeof buttonVariants> {
+export interface ButtonProps
+  extends TouchableOpacityProps,
+    VariantProps<typeof buttonVariants> {
   title?: string;
-  onPress?: (event: GestureResponderEvent) => void;
-  disabled?: boolean;
   loading?: boolean;
   className?: string;
   titleClassName?: string;
@@ -50,12 +50,12 @@ const CustomButton = React.forwardRef<View, ButtonProps>(
       title,
       variant,
       size,
-      onPress,
       disabled,
       loading = false,
       className,
       icon,
       titleClassName,
+      ...props
     },
     ref
   ) => {
@@ -63,8 +63,8 @@ const CustomButton = React.forwardRef<View, ButtonProps>(
       <TouchableOpacity
         ref={ref}
         disabled={disabled || loading}
-        onPress={onPress}
         className={cn(buttonVariants({ variant, size }), className)}
+        {...props}
       >
         {loading ? (
           <ActivityIndicator color="#fff" />

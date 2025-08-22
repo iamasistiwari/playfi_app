@@ -12,6 +12,7 @@ import { Text, View } from "react-native";
 import Toast from "react-native-toast-message";
 import { useDispatch, useSelector } from "react-redux";
 import z from "zod";
+import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 
 const loginSchema = z.object({
   email: z.email(),
@@ -55,13 +56,13 @@ const Index = () => {
         const token = res?.responseData?.token;
 
         if (token) {
-          dispatch(
-            setUser({
-              token,
-              email: res?.responseData?.user?.email,
-              name: res?.responseData?.user?.name,
-            })
-          );
+          const user = {
+            token: token,
+            email: res?.responseData?.user?.email,
+            name: res?.responseData?.user?.name,
+            isAdmin: res?.responseData?.user?.isAdmin || false,
+          };
+          dispatch(setUser(user));
         }
       } else {
         const zodValidate = signUpSchema.safeParse(userDetails);
@@ -83,23 +84,24 @@ const Index = () => {
           position: "top",
         });
         setUserDetails({ name: "", email: "", password: "" });
+        dispatch;
         setIsSignup(false);
       }
     } catch (error) {
       if (error instanceof AxiosError) {
         if (error.response?.data?.responseData?.email) {
-          // return Toast.show({
-          //   type: "error",
-          //   text1: error.response?.data?.responseData?.email,
-          //   position: "top",
-          // });
+          return Toast.show({
+            type: "error",
+            text1: error.response?.data?.responseData?.email,
+            position: "top",
+          });
         }
         if (error.response?.data?.responseData?.password) {
-          // return Toast.show({
-          //   type: "error",
-          //   text1: error.response?.data?.responseData?.password,
-          //   position: "top",
-          // });
+          return Toast.show({
+            type: "error",
+            text1: error.response?.data?.responseData?.password,
+            position: "top",
+          });
         }
       }
     } finally {
@@ -108,82 +110,104 @@ const Index = () => {
   };
 
   useEffect(() => {
-    if (token) {
-      dispatch(fetchAllPlaylistAsync());
-      router.replace("/home");
-    }
+    const callAsync = async () => {
+      if (token && token.length > 20) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        dispatch(fetchAllPlaylistAsync());
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        router.replace("/home");
+      }
+    };
+    callAsync();
   }, [token]);
 
   return (
-    <View className="min-h-[100vh] items-center justify-center w-full p-4">
-      {!token && (
-        <View className="w-full flex flex-col rounded-lg p-4 gap-y-4 mb-20">
-          <View>
-            <Text className="text-neutral-50 text-3xl text-center font-semibold">
-              Welcome to PlayFi
-            </Text>
-            {isSignup ? (
-              <View className="flex flex-row items-center justify-center ">
-                <Text className="text-neutral-50 ml-3">
-                  Already have an account?
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
+    >
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View className="flex-1 items-center justify-center w-full p-4">
+          {!token && (
+            <View className="w-full flex flex-col rounded-lg p-4 gap-y-4 mb-20">
+              {/* Title */}
+              <View>
+                <Text className="text-neutral-50 text-3xl text-center font-semibold">
+                  Welcome to PlayFi
                 </Text>
-                <CustomButton
-                  className="relative -left-2"
-                  variant={"link"}
-                  title="signin"
-                  titleClassName="text-blue-600 underline"
-                  onPress={() => setIsSignup(false)}
-                />
+                {isSignup ? (
+                  <View className="flex flex-row items-center justify-center ">
+                    <Text className="text-neutral-50 ml-3">
+                      Already have an account?
+                    </Text>
+                    <CustomButton
+                      className="relative -left-2"
+                      variant={"link"}
+                      title="signin"
+                      titleClassName="text-blue-600 underline"
+                      onPress={() => setIsSignup(false)}
+                    />
+                  </View>
+                ) : (
+                  <View className="flex flex-row items-center justify-center ">
+                    <Text className="text-neutral-50 ml-3">New To PlayFi?</Text>
+                    <CustomButton
+                      className="relative -left-2"
+                      variant={"link"}
+                      title="signup"
+                      titleClassName="text-blue-600 underline"
+                      onPress={() => setIsSignup(true)}
+                    />
+                  </View>
+                )}
               </View>
-            ) : (
-              <View className="flex flex-row items-center justify-center ">
-                <Text className="text-neutral-50 ml-3">New To PlayFi?</Text>
-                <CustomButton
-                  className="relative -left-2"
-                  variant={"link"}
-                  title="signup"
-                  titleClassName="text-blue-600 underline"
-                  onPress={() => setIsSignup(true)}
+
+              {/* Inputs */}
+              {isSignup && (
+                <CustomInput
+                  label="Name"
+                  placeholder="Enter your name"
+                  value={userDetails.name}
+                  onChangeText={(text) =>
+                    setUserDetails({ ...userDetails, name: text })
+                  }
                 />
-              </View>
-            )}
-          </View>
-          {isSignup && (
-            <CustomInput
-              label="Name"
-              placeholder="Enter your name"
-              value={userDetails.name}
-              onChangeText={(text) =>
-                setUserDetails({ ...userDetails, name: text })
-              }
-            />
+              )}
+              <CustomInput
+                label="Email"
+                placeholder="Enter your email"
+                value={userDetails.email}
+                onChangeText={(text) =>
+                  setUserDetails({ ...userDetails, email: text })
+                }
+              />
+              <CustomInput
+                label="Password"
+                placeholder="Enter your password"
+                secureTextEntry
+                value={userDetails.password}
+                onChangeText={(text) =>
+                  setUserDetails({ ...userDetails, password: text })
+                }
+              />
+
+              {/* Button */}
+              <CustomButton
+                loading={loading}
+                title="Save"
+                icon={<Ionicons name="log-in" size={20} color="white" />}
+                onPress={handleSubmit}
+              />
+
+              <Text className="text-white">{token}</Text>
+            </View>
           )}
-          <CustomInput
-            label="Email"
-            placeholder="Enter your email"
-            value={userDetails.email}
-            onChangeText={(text) =>
-              setUserDetails({ ...userDetails, email: text })
-            }
-          />
-          <CustomInput
-            label="Passoword"
-            placeholder="Enter your passoword"
-            value={userDetails.password}
-            onChangeText={(text) =>
-              setUserDetails({ ...userDetails, password: text })
-            }
-          />
-          <CustomButton
-            loading={loading}
-            title="Save"
-            icon={<Ionicons name="log-in" size={20} color="white" />}
-            onPress={handleSubmit}
-          />
-          <Text className="text-white">{token}</Text>
         </View>
-      )}
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 

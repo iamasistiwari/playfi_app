@@ -22,6 +22,7 @@ const SongTile = ({ data }: { data: Video }) => {
     opacity: opacity.value,
     transform: [{ translateX: translateX.value }],
   }));
+  
 
   useEffect(() => {
     opacity.value = withTiming(1, { duration: 500 });

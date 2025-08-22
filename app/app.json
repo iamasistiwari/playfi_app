@@ -8,7 +8,9 @@
     },
     "ios": {
       "infoPlist": {
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": [
+          "audio"
+        ]
       }
     },
     "android": {
@@ -39,6 +41,14 @@
       ]
     ],
     "name": "app",
-    "slug": "app"
+    "slug": "app",
+    "extra": {
+      "router": {
+        "origin": "https://n"
+      },
+      "eas": {
+        "projectId": "decfecd2-f376-4f02-be9a-390e06749c80"
+      }
+    }
   }
 }

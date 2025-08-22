@@ -1,5 +1,5 @@
-import { View, Text, Pressable, ScrollView } from "react-native";
-import React, { useEffect, useRef, useState } from "react";
+import { View, Pressable, ScrollView } from "react-native";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
 import { Menu } from "react-native-paper";
@@ -7,10 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { MaterialIcons } from "@expo/vector-icons";
 import { addSongToQueue, removeSongFromQueue } from "@/redux/song-player";
 import { Video } from "@/types/song";
-import { Portal, Dialog, Button } from "react-native-paper";
-import Checkbox from "expo-checkbox";
 import { CustomButton } from "./CustomButton";
-import CustomInput from "./CustomInput";
 import CustomPortal from "./CustomPortal";
 import CreatePlaylist from "./CreatePlaylist";
 import {
@@ -18,17 +15,24 @@ import {
   globalPlaylistAsync,
   userPlaylistAsync,
 } from "@/redux/thunks/playlistThunk";
-import AntDesign from "@expo/vector-icons/AntDesign";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { addOrRemoveSongFromPlaylist } from "@/actions/playlist";
-import Toast from "react-native-toast-message";
+import { handleLikeSong } from "@/redux/playlist-slice";
 
-const CustomMenu = ({ video }: { video: Video }) => {
+import RenameSongDialog from "./RenameSongDialog";
+
+interface Props {
+  video: Video;
+}
+
+const CustomMenuComponent: React.FC<Props> = ({ video }: Props) => {
+  const isAdmin = useSelector((state: RootState) => state.user.isAdmin);
+
   const [isSongPresent, setIsSongPresent] = useState<Map<string, boolean>>();
 
-  const { queue } = useSelector((state: RootState) => state.songPlayer);
+  const { queue = [] } = useSelector((state: RootState) => state.songPlayer);
 
-  const { userPlaylists, playlist, loading } = useSelector(
+  const { userPlaylists, playlist, loading, likedSongsPlaylist } = useSelector(
     (state: RootState) => state.playlist
   );
 
@@ -37,6 +41,8 @@ const CustomMenu = ({ video }: { video: Video }) => {
   const [addToPlaylistDialogVisible, setaddToPlaylistDialogVisible] =
     useState(false);
 
+  const [renameSongDialogVisible, setRenameSongDialogVisible] = useState(false);
+
   const [menuVisible, setmenuVisible] = useState(false);
 
   const dispatch = useDispatch<AppDispatch>();
@@ -44,6 +50,8 @@ const CustomMenu = ({ video }: { video: Video }) => {
   const [songActionLoading, setSongActionLoading] = useState<boolean[]>(
     Array(userPlaylists.length).fill(false)
   );
+
+  const isLiked = likedSongsPlaylist.songs.some((item) => item.id === video.id);
 
   useEffect(() => {
     if (userPlaylists.length > 0 && !loading) {
@@ -80,11 +88,17 @@ const CustomMenu = ({ video }: { video: Video }) => {
         }
       >
         <Menu.Item
-          onPress={() => {}}
-          leadingIcon={() => (
-            <Ionicons name="heart-outline" size={24} color="#ef4444" />
-          )}
-          title="Like"
+          onPress={() => {
+            dispatch(handleLikeSong(video));
+          }}
+          leadingIcon={() =>
+            isLiked ? (
+              <Ionicons name="heart" size={24} color="#ef4444" />
+            ) : (
+              <Ionicons name="heart-outline" size={24} color="#ef4444" />
+            )
+          }
+          title={isLiked ? "Remove" : "Like"}
         />
         <Menu.Item
           onPress={() => {
@@ -109,7 +123,32 @@ const CustomMenu = ({ video }: { video: Video }) => {
           )}
           title="Playlists Actions"
         />
+        {isAdmin && (
+          <Menu.Item
+            onPress={() => {
+              setRenameSongDialogVisible(true);
+              setmenuVisible(false);
+            }}
+            leadingIcon={() => (
+              <MaterialIcons
+                name="drive-file-rename-outline"
+                size={24}
+                color="#16a34a"
+              />
+            )}
+            title="Change title"
+          />
+        )}
       </Menu>
+
+      {/* rename song dialog */}
+      {renameSongDialogVisible && (
+        <RenameSongDialog
+          video={video}
+          renameSongDialogVisible={renameSongDialogVisible}
+          setRenameSongDialogVisible={setRenameSongDialogVisible}
+        />
+      )}
 
       {/* add to playlist dialog */}
       <CustomPortal
@@ -183,4 +222,8 @@ const CustomMenu = ({ video }: { video: Video }) => {
   );
 };
 
+const CustomMenu = React.memo(
+  CustomMenuComponent,
+  (prevProps, nextProps) => prevProps.video.id === nextProps.video.id
+);
 export default CustomMenu;

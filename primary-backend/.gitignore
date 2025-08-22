@@ -4,6 +4,9 @@ venv/
 # dependencies
 node_modules/
 
+#youtube cookie
+cookies.txt
+
 # Expo
 .expo/
 dist/

@@ -8,13 +8,16 @@ import re
 from typing import Optional
 import subprocess
 import sys
+import random
+import os
+
 
 # Run pip install -U yt-dlp
 
 def format_sentence(sentence: str, channelName: str) -> str:
     removable_words = [
         "official", "audio", "lyrics", "music", "video", "clip", "latest", 
-        "song", "songs", "punjabi", "hindi", "new", "full", "hd", "ft", "feat"
+        "song", "songs", "punjabi", "hindi", "new", "full", "hd", "ft", "lyric", "lyrics"
     ]
     
     # Add channel name words
@@ -106,6 +109,22 @@ def getYoutubeMusicUrl(videoId: str, max_attempts: int = 10) -> Optional[str]:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", "yt-dlp"])
     return None
 
+def get_random_user_agent():
+    """Return a random realistic user agent"""
+    user_agents = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    ]
+    return random.choice(user_agents)
+
+COOKIE_FILE = "/Users/ashish/Desktop/playfi_app/primary-backend/cookies.txt"
+
+
+
 
 def _extractAudioUrl(videoId: str, attempt_num: int) -> Optional[str]:
 
@@ -121,6 +140,9 @@ def _extractAudioUrl(videoId: str, attempt_num: int) -> Optional[str]:
         # Add retry options for yt-dlp itself
         'retries': 2,
         'socket_timeout': 30,
+       
+        'cookiefile': COOKIE_FILE,
+
     }
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:

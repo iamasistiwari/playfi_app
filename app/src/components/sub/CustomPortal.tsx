@@ -21,6 +21,7 @@ interface Controlled {
   triggerTitle?: undefined;
   triggerClassName?: undefined;
   triggerVariant?: undefined;
+  
   dialogTitle: string;
   dialogContent: React.ReactNode;
   visible: boolean;

@@ -39,6 +39,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
 
+
 class Songs(models.Model):
     id = models.CharField(primary_key=True, max_length=100)
     type = models.CharField(max_length=50)
@@ -54,6 +55,9 @@ class Songs(models.Model):
 
     def __str__(self):
         return f"{self.id} - {self.title}"
+
+
+
 
 class Playlists(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, )

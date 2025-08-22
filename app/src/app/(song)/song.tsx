@@ -1,11 +1,12 @@
-import { View, Text, Image, Pressable } from "react-native";
-import React, { useEffect } from "react";
-import { useSelector } from "react-redux";
-import { RootState } from "@/redux/store";
+import { View, Text, Image } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/redux/store";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  runOnJS,
 } from "react-native-reanimated";
 import { usePlayer } from "@/hooks/usePlayer";
 import { CustomButton } from "@/components/sub/CustomButton";
@@ -13,6 +14,10 @@ import { Ionicons } from "@expo/vector-icons";
 import Loader from "@/components/sub/Loader";
 import SongSlider from "@/components/sub/SongSlider";
 import CustomMenu from "@/components/sub/Menu";
+import { playNextAsync } from "@/redux/thunks/songThunk";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { useRouter } from "expo-router";
+import SongImage from "@/components/sub/SongImage";
 
 const Song = () => {
   const { currentSong, loading } = useSelector(
@@ -21,10 +26,11 @@ const Song = () => {
   const {
     togglePlayPause,
     isPlaying,
-    player,
     playerState: { isBuffering },
+    seekTo,
   } = usePlayer();
-
+  const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
   const translateY = useSharedValue(-20);
   const opacity = useSharedValue(0);
 
@@ -38,38 +44,41 @@ const Song = () => {
     translateY.value = withTiming(0, { duration: 500 });
   }, []);
 
+  const panGesture = Gesture.Pan()
+    .activeOffsetY([20, 9999]) // must move vertically at least 20px
+    .failOffsetX([-20, 20]) // if user moves too much horizontally, cancel this gesture
+    .onEnd((event) => {
+      if (event.translationY > 100 && event.velocityY > 500) {
+        runOnJS(router.back)();
+      }
+    });
+
   return (
-    <Pressable
-      onPointerDown={() => {
-        console.log("down");
-      }}
-      onPointerUp={() => {
-        console.log("up");
-      }}
-    >
-      <Animated.View style={[animatedStyle]}>
-        <View className="px-10 pt-20 ">
-          <View className="absolute top-4 right-4">
+    <GestureDetector gesture={panGesture}>
+      <Animated.View style={[animatedStyle, { flex: 1 }]}>
+        <View className="px-10 pt-20 flex-1">
+          <View className="absolute right-4 top-4">
             <CustomMenu video={currentSong?.video} />
           </View>
-          <Image
-            source={{ uri: currentSong?.video?.thumbnails?.at(-1)?.url }}
-            style={{
-              width: "100%",
-              height: 300,
-              borderRadius: 10,
-              opacity: 0.75,
-            }}
-          />
-
-          <View className="flex flex-col items-center justify-center my-10 overflow-hidden">
-            <Text className="text-center text-white text-2xl font-bold max-w-[70vw] text-ellipsis whitespace-nowrap">
-              {currentSong?.video?.title?.slice(0, 25) || "No title"}
-            </Text>
-            <Text className="text-neutral-400 text-lg">
-              {currentSong?.video?.channel?.name || "No channel"}
-            </Text>
+          <View>
+            <SongImage
+              url={currentSong?.video?.thumbnails?.at(-1)?.url || ""}
+              width={300}
+              height={300}
+            />
+            <View className="flex flex-col items-center justify-center my-10 overflow-hidden">
+              <Text
+                numberOfLines={1}
+                className="text-center text-white text-2xl font-bold max-w-[70vw]"
+              >
+                {currentSong?.video?.title || "No title"}
+              </Text>
+              <Text numberOfLines={1} className="text-neutral-400 text-lg">
+                {currentSong?.video?.channel?.name || "No channel"}
+              </Text>
+            </View>
           </View>
+
           <SongSlider />
 
           <View className="flex flex-row gap-x-4 min-w-full items-center justify-center">
@@ -81,12 +90,10 @@ const Song = () => {
               }
               onPress={(e) => {
                 e.stopPropagation();
-                if (player.currentTime < 10) {
-                  player.seekTo(0);
-                } else {
-                }
+                seekTo(0);
               }}
             />
+
             {loading || isBuffering ? (
               <Loader size={50} />
             ) : (
@@ -106,20 +113,22 @@ const Song = () => {
                 }}
               />
             )}
+
             <CustomButton
-              className="px-0 py-0 h-full  opacity-70"
+              className="px-0 py-0 h-full opacity-70"
               variant={"ghost"}
               icon={
                 <Ionicons name="play-skip-forward" size={30} color="#e5e5e5" />
               }
               onPress={(e) => {
                 e.stopPropagation();
+                dispatch(playNextAsync());
               }}
             />
           </View>
         </View>
       </Animated.View>
-    </Pressable>
+    </GestureDetector>
   );
 };
 

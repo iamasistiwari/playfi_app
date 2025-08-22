@@ -3,18 +3,28 @@ import React from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import PlaylistFolder from "../sub/PlaylistFolder";
+import { Playlist } from "@/types/song";
 
 const Playlists = () => {
-  const { globalPlaylists, userPlaylists, loading } = useSelector(
-    (state: RootState) => state.playlist
-  );
+  const {
+    globalPlaylists,
+    userPlaylists: userPlaylist,
+    likedSongsPlaylist,
+    loading,
+  } = useSelector((state: RootState) => state.playlist);
+  const user = useSelector((state: RootState) => state.user);
+
+  const userPlaylists = [likedSongsPlaylist, ...userPlaylist];
 
   if (loading) {
     return <Text className="text-white text-xl">Loading......</Text>;
   }
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} className="max-h-[60vh] p-4">
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      className="max-h-[60vh] p-4"
+    >
       {[
         {
           id: 1,

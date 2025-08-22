@@ -11,4 +11,7 @@ urlpatterns = [
     path("add/user", views.addUserToPlaylist, name="addUserToPlaylist"),
     path("remove/song", views.removeSongFromPlaylist, name="removeSongFromPlaylist"),
     path("playsong/", views.playSong, name="playSong"),
+    path("update/songTitle", views.updateSongTitle, name="updateSongTitle"),
+    path("check/is/admin", views.checkIsAdmin, name="checkIsAdmin"),
+    path("makeadmin", views.makeUserAdmin, name="updateUser"),
 ]
