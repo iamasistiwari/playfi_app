@@ -38,4 +38,4 @@ typing_extensions==4.14.1
 urllib3==2.5.0
 uvicorn==0.35.0
 yt-dlp==2025.8.20
-youtubesearchpython>=1.8.0
+youtubesearchpython==1.7.3
