@@ -11,23 +11,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
 
       - name: Create app directory on VPS
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no administrator@${{ secrets.VPS_HOST }} "mkdir -p /home/administrator/playfi-app"
+          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no administrator@${{ secrets.VPS_HOST }} "mkdir -p /home/administrator/playfi-app"
 
       - name: Copy source code to VPS
         run: |
-          rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
+          rsync -avz --delete -e "sshpass -p '${{ secrets.VPS_PASSWORD }}' ssh -o StrictHostKeyChecking=no" \
             --exclude='.git' \
             --exclude='.vscode' \
             --exclude='app/' \
@@ -37,12 +34,12 @@ jobs:
 
       - name: Create .env file on VPS
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no administrator@${{ secrets.VPS_HOST }} \
+          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no administrator@${{ secrets.VPS_HOST }} \
           "printf '%s\n' '${{ secrets.ENV_FILE }}' > /home/administrator/playfi-app/primary-backend/.env"
 
       - name: Install dependencies and run migrations on VPS
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no administrator@${{ secrets.VPS_HOST }} << EOF  
+          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no administrator@${{ secrets.VPS_HOST }} << EOF  
             cd /home/administrator/playfi-app/primary-backend
 
             # Create virtual environment if not exists
@@ -55,7 +52,7 @@ jobs:
 
       - name: Start Django backend with PM2 on VPS
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ secrets.VPS_HOST }} << 'EOF'
+          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no administrator@${{ secrets.VPS_HOST }} << 'EOF'
             cd /home/administrator/playfi-app/primary-backend
             source venv/bin/activate
             pm2 delete playfi-django-backend || true
