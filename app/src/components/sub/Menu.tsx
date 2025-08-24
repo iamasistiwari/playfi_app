@@ -19,14 +19,11 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { addOrRemoveSongFromPlaylist } from "@/actions/playlist";
 import { handleLikeSong } from "@/redux/playlist-slice";
 
-import RenameSongDialog from "./RenameSongDialog";
-
 interface Props {
   video: Video;
 }
 
 const CustomMenuComponent: React.FC<Props> = ({ video }: Props) => {
-  const isAdmin = useSelector((state: RootState) => state.user.isAdmin);
 
   const [isSongPresent, setIsSongPresent] = useState<Map<string, boolean>>();
 
@@ -123,33 +120,8 @@ const CustomMenuComponent: React.FC<Props> = ({ video }: Props) => {
           )}
           title="Playlists Actions"
         />
-        {isAdmin && (
-          <Menu.Item
-            onPress={() => {
-              setRenameSongDialogVisible(true);
-              setmenuVisible(false);
-            }}
-            leadingIcon={() => (
-              <MaterialIcons
-                name="drive-file-rename-outline"
-                size={24}
-                color="#16a34a"
-              />
-            )}
-            title="Change title"
-          />
-        )}
+        
       </Menu>
-
-      {/* rename song dialog */}
-      {renameSongDialogVisible && (
-        <RenameSongDialog
-          video={video}
-          renameSongDialogVisible={renameSongDialogVisible}
-          setRenameSongDialogVisible={setRenameSongDialogVisible}
-        />
-      )}
-
       {/* add to playlist dialog */}
       <CustomPortal
         visible={addToPlaylistDialogVisible}

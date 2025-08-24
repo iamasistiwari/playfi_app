@@ -12,12 +12,6 @@ class Thumbnail(BaseModel):
     width: int
     height: int
 
-
-class DescriptionText(BaseModel):
-    text: str
-    bold: Optional[bool] = None
-
-
 class Channel(BaseModel):
     name: str
     id: str

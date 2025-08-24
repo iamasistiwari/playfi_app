@@ -1,13 +1,22 @@
-from .types import YoutubeVideoType
+from .types import YoutubeVideoType, ViewCount, Thumbnail, Channel, Accessibility
 from typing import List
-from youtubesearchpython import VideosSearch
+# from youtubesearchpython import VideosSearch
+from ytmusicapi import YTMusic
 import yt_dlp
 from urllib.parse import urlparse, parse_qs
 import time
 import re
-from typing import Optional
+from typing import List, Optional
 import subprocess
 import sys
+
+ytmusic: Optional[YTMusic] = None
+
+def getYTMusic() -> YTMusic:
+    global ytmusic
+    if ytmusic is None:
+        ytmusic = YTMusic()
+    return ytmusic
 
 def format_sentence(sentence: str, channelName: str) -> str:
     removable_words = [
@@ -60,20 +69,43 @@ def getExpiryTimeout(music_url: str) -> int:
         print(f"Error extracting expiry: {e}")
         return 60 * 60 * 24  # fallback: 24 hours
 
-def youtubeSearch(query: str) -> List[YoutubeVideoType]:
-    videos_search = VideosSearch(query=query, limit=5, region="IND")
-    results = videos_search.result()
 
-    videos = results.get("result", [])
-    # validated_videos = [YoutubeVideoType.model_validate(video) for video in videos]
-    validated_videos = []
-    for video in videos:
+def youtubeSearch(query: str) -> List[YoutubeVideoType]:
+    results = getYTMusic().search(query, filter="songs")
+    validated_videos: List[YoutubeVideoType] = []
+
+    for video in results[:5]:  
         try:
-            validated = YoutubeVideoType.model_validate(video)
-            validated_videos.append(validated.model_dump())  
+            mapped_video = {
+                "type": video.get("videoType", ""),
+                "id": video.get("videoId", ""),
+                "title": video.get("title", ""),
+                "publishedTime": str(video.get("year") or ""),
+                "duration": video.get("duration", ""),
+                "viewCount": {"text": video.get("views", "0 views"), "short": None},
+                "thumbnails": video.get("thumbnails", []),
+                "richThumbnail": video["thumbnails"][-1] if video.get("thumbnails") else None,
+                "channel": {
+                    "name": video["artists"][0]["name"] if video.get("artists") else "",
+                    "id": video["artists"][0]["id"] if video.get("artists") else "",
+                    "thumbnails": [],
+                    "link": ""
+                },
+                "accessibility": {
+                    "title": video.get("title", ""),
+                    "duration": video.get("duration", "")
+                },
+                "link": f"https://music.youtube.com/watch?v={video.get('videoId','')}"
+            }
+
+            validated = YoutubeVideoType.model_validate(mapped_video)
+            validated_videos.append(validated.model_dump())  # now this works
         except Exception as e:
+            print("Error validating video:", e)
             continue
+
     return validated_videos
+
 
 def getYoutubeMusicUrl(videoId: str, max_attempts: int = 10) -> Optional[str]:
     

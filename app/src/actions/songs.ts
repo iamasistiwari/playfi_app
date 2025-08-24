@@ -28,17 +28,4 @@ export const getSongUrl = async (songId: string): Promise<string> => {
   }
 };
 
-export const renameSongAction = async (
-  songId: string,
-  newTitle: string
-): Promise<boolean> => {
-  try {
-    const response = await post("/api/v1/update/songTitle", {
-      song_id: songId,
-      title: newTitle,
-    });
-    return response?.responseStatus?.status || false;
-  } catch (error) {
-    return false;
-  }
-};
+

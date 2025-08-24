@@ -56,7 +56,7 @@ const SongPlayer = () => {
           <LoadingSkeleton className="w-60 h-14 bg-neutral-800" />
         ) : (
           <View className="w-[220px]  flex flex-row overflow-hidden">
-            <SongImage url={currentSong?.video?.thumbnails?.[0]?.url} />
+            <SongImage url={currentSong?.video?.thumbnails?.at(-1)?.url} />
             <View className="flex flex-col px-2 justify-center">
               <Text
                 numberOfLines={1}

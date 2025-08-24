@@ -9,8 +9,8 @@ type SongImageProps = {
 
 const SongImageComponent: React.FC<SongImageProps> = ({
   url,
-  width = 60,
-  height = 60,
+  width = 50,
+  height = 50,
 }) => {
   return (
     <Image source={{ uri: url }} style={{ width, height, borderRadius: 12 }} />

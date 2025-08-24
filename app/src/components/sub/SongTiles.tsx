@@ -58,9 +58,7 @@ const SongTile = ({ data }: { data: Video }) => {
             {data.title}
           </Text>
           <Text style={styles.channel}>{data.channel.name}</Text>
-          <Text style={styles.views}>
-            {data.viewCount.short} • {data.publishedTime}
-          </Text>
+          
         </View>
         <CustomMenu video={data} />
       </Pressable>

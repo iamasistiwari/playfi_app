@@ -125,10 +125,6 @@ def searchSongs(request):
 
     try:
         results = youtubeSearch(q)
-
-        for result in results:
-            channelName = result["channel"]["name"]
-            result["title"] = format_sentence(result["title"], channelName)
         cache.set(cache_key, results, timeout=60 * 60 * 24 * 7)  # Cache for 1 week
         return Response(
             create_response(True, "Feteched", results), status=status.HTTP_200_OK
@@ -250,9 +246,6 @@ def updateSongTitle(request):
     except Songs.DoesNotExist:
         return Response(create_response(False, "song_id not found"), status=status.HTTP_404_NOT_FOUND)
 
-
-
-
 @api_view(["POST"])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
@@ -269,7 +262,6 @@ def makeUserAdmin(request):
         return Response(create_response(True, f"User {user.username} is now an admin."), status=status.HTTP_200_OK)
     except User.DoesNotExist:
         return Response(create_response(False, "User not found."), status=status.HTTP_404_NOT_FOUND)
-
 
 @api_view(["GET"])
 @authentication_classes([JWTAuthentication])
