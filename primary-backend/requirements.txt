@@ -3,6 +3,7 @@ anyio==4.9.0
 asgiref==3.9.1
 async-timeout==5.0.1
 black==25.1.0
+browser-cookie3==0.20.1
 certifi==2025.7.14
 charset-normalizer==3.4.2
 click==8.2.1
@@ -17,11 +18,13 @@ h11==0.14.0
 httpcore==0.16.3
 httpx==0.23.3
 idna==3.10
+lz4==4.4.4
 mypy_extensions==1.1.0
 packaging==25.0
 pathspec==0.12.1
 platformdirs==4.3.8
-psycopg2-binary==2.9.10
+psycopg2==2.9.10
+pycryptodomex==3.23.0
 pydantic==2.11.7
 pydantic_core==2.33.2
 PyJWT==2.10.1
@@ -37,5 +40,5 @@ typing-inspection==0.4.1
 typing_extensions==4.14.1
 urllib3==2.5.0
 uvicorn==0.35.0
+youtube-search-python==1.6.6
 yt-dlp==2025.8.20
-youtubesearchpython==1.7.3
