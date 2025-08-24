@@ -1,0 +1,65 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy on VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create app directory on VPS
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no administrator@${{ secrets.VPS_HOST }} "mkdir -p /home/administrator/playfi-app"
+
+      - name: Copy source code to VPS
+        run: |
+          rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
+            --exclude='.git' \
+            --exclude='.vscode' \
+            --exclude='app/' \
+            --exclude='worker/' \
+            ./ \
+            administrator@${{ secrets.VPS_HOST }}:/home/administrator/playfi-app/
+
+      - name: Create .env file on VPS
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no administrator@${{ secrets.VPS_HOST }} \
+          "printf '%s\n' '${{ secrets.ENV_FILE }}' > /home/administrator/playfi-app/primary-backend/.env"
+
+      - name: Install dependencies and run migrations on VPS
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no administrator@${{ secrets.VPS_HOST }} << EOF  
+            cd /home/administrator/playfi-app/primary-backend
+
+            # Create virtual environment if not exists
+            [ -d "venv" ] || python3 -m venv venv
+            source venv/bin/activate
+            pip install -r requirements.txt
+            python manage.py makemigrations
+            python manage.py migrate
+          EOF
+
+      - name: Start Django backend with PM2 on VPS
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ secrets.VPS_HOST }} << 'EOF'
+            cd /home/administrator/playfi-app/primary-backend
+            source venv/bin/activate
+            pm2 delete playfi-django-backend || true
+            pm2 start "uvicorn core.asgi:application --host 0.0.0.0 --port 7095" --name playfi-django-backend
+            pm2 save
+            pm2 startup systemd -u administrator --hp /home/administrator || true
+          EOF

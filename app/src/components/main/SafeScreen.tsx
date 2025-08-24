@@ -10,23 +10,23 @@ const SafeScreen = ({ children }) => {
   const pathname = usePathname();
   const songPlayerContextHidePages = ["/"];
   const songPlayerHidePages = [...songPlayerContextHidePages, "/song"];
+
   return (
-    <View
-      style={{
-        paddingTop: inset.top,
-        flex: 1,
-        paddingBottom: inset.bottom,
-        backgroundColor: "#121212",
-      }}
-    >
-      {!songPlayerContextHidePages.includes(pathname) ? (
-        <PlayerProvider>
-          {children}
-          {!songPlayerHidePages.includes(pathname) && <SongPlayer />}
-        </PlayerProvider>
-      ) : (
-        children
-      )}
+    <View style={{ flex: 1, backgroundColor: "#121212" }}>
+      {/* StatusBar background (iOS + Android) */}
+      <View style={{ height: inset.top, backgroundColor: "#121212" }} />
+
+      {/* Main content */}
+      <View style={{ flex: 1, backgroundColor: "#121212", paddingBottom: inset.bottom }}>
+        {!songPlayerContextHidePages.includes(pathname) ? (
+          <PlayerProvider>
+            {children}
+            {!songPlayerHidePages.includes(pathname) && <SongPlayer />}
+          </PlayerProvider>
+        ) : (
+          children
+        )}
+      </View>
     </View>
   );
 };

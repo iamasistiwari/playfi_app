@@ -11,6 +11,7 @@ import {
 import { Provider as MenuProvider } from "react-native-paper";
 import Toast from "react-native-toast-message";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { StatusBar } from "react-native";
 
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
@@ -22,6 +23,7 @@ export default function Layout() {
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
         <GestureHandlerRootView>
+          <StatusBar barStyle="light-content" backgroundColor="#121212" />
           <SafeScreen>
             <Toast />
             <MenuProvider>

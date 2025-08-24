@@ -8,11 +8,6 @@ import re
 from typing import Optional
 import subprocess
 import sys
-import random
-import os
-
-
-# Run pip install -U yt-dlp
 
 def format_sentence(sentence: str, channelName: str) -> str:
     removable_words = [
@@ -103,33 +98,18 @@ def getYoutubeMusicUrl(videoId: str, max_attempts: int = 10) -> Optional[str]:
         
         # Wait before retrying (exponential backoff)
         if attempt < max_attempts:
-            time.sleep((attempt/2))
+            wait_time = min(attempt * 2, 30)  # Cap at 30 seconds
+            print(f"⏳ Waiting {wait_time} seconds before retry...")
+            time.sleep(wait_time)
     
     print(f"\n❌ ALL {max_attempts} ATTEMPTS FAILED for video ID: {videoId}")
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", "yt-dlp"])
     return None
 
-def get_random_user_agent():
-    """Return a random realistic user agent"""
-    user_agents = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    ]
-    return random.choice(user_agents)
-
-COOKIE_FILE = "/Users/ashish/Desktop/playfi_app/primary-backend/cookies.txt"
-
-
-
-
 def _extractAudioUrl(videoId: str, attempt_num: int) -> Optional[str]:
 
     youtube_url = f"https://www.youtube.com/watch?v={videoId}"
-    
+
     # Configure yt-dlp for AUDIO-ONLY extraction
     ydl_opts = {
         'format': 'bestaudio[vcodec=none]/bestaudio',  # Force audio-only, fallback to best audio
@@ -140,9 +120,6 @@ def _extractAudioUrl(videoId: str, attempt_num: int) -> Optional[str]:
         # Add retry options for yt-dlp itself
         'retries': 2,
         'socket_timeout': 30,
-       
-        'cookiefile': COOKIE_FILE,
-
     }
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -213,4 +190,3 @@ def _extractAudioUrl(videoId: str, attempt_num: int) -> Optional[str]:
         else:
             print(f"[Attempt {attempt_num}] Error: Invalid URL received")
             return None
-

@@ -1,4 +1,4 @@
-import email
+from time import time
 from rest_framework.decorators import (
     api_view,
     permission_classes,
@@ -9,7 +9,7 @@ import re
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .utils import youtubeSearch, getYoutubeMusicUrl, getExpiryTimeout, format_sentence
+from .utils import youtubeSearch, format_sentence
 from core.utils import create_response
 from rest_framework import status
 from django.core.cache import cache
@@ -20,6 +20,27 @@ from .models import Playlists, Songs, User
 from django.db.models import Q
 from .serializers import PlaylistSerializer, PlaylistDetailSerializer, PlaylistMiniDetailsSerializer
 from rest_framework.views import APIView
+import time
+import redis
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+_redis_client = None
+
+def get_redis_client():
+    global _redis_client
+    if _redis_client is None:
+        _redis_client = redis.Redis(
+            host=os.getenv("REDIS_HOST"),
+            port=os.getenv("REDIS_PORT"),
+            db=1,
+            password=os.getenv("REDIS_PASSWORD"),
+            decode_responses=True
+        )
+    return _redis_client
+
 
 @api_view(["GET"])
 @authentication_classes([JWTAuthentication])
@@ -34,7 +55,7 @@ def playSong(request):
 
     pattern = r'^[a-zA-Z0-9_-]{11}$'
     is_valid_id = bool(re.match(pattern, songId))
-    
+
     if not is_valid_id :
         return Response(
             create_response(False, "Youtube video id is not valid"),
@@ -42,24 +63,31 @@ def playSong(request):
         )
     
     cache_key = f"song_url:{songId}"
-    cached_data = cache.get(cache_key)
+    redis_client = get_redis_client()
+    cached_data = redis_client.get(cache_key)
+
     if cached_data:
         return Response(
-            create_response(True, "Feteched", {"url":cached_data}), status=status.HTTP_200_OK
+            create_response(True, "Feteched from cache", {"url":cached_data}), status=status.HTTP_200_OK
         )
+
     try:
-        musicUrl = getYoutubeMusicUrl(songId)
-        if(musicUrl):
-            timeout = getExpiryTimeout(musicUrl)
-            cache.set(cache_key, musicUrl, timeout=timeout) 
-            return Response(
-                create_response(True, "Feteched", {"url": musicUrl}), status=status.HTTP_200_OK
-            )
-        else:
-            return Response(
-                create_response(False, "An error occurred while fetching data"),
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        redis_client.lpush("song_tasks", songId)  
+        time.sleep(2)
+        c = 0
+        while c < 10:
+            cached_data = redis_client.get(cache_key)
+            if cached_data:
+                return Response(
+                    create_response(True, "Fetched Realtime", {"url":cached_data}), status=status.HTTP_200_OK
+                )
+            time.sleep(1)
+            c += 1
+        return Response(
+            create_response(False, "An error occurred while fetching data after loop 10 times"),
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
     except Exception as _:
         return Response(
             create_response(False, "An error occurred while fetching data"),

@@ -1,7 +1,7 @@
 import axios, { AxiosRequestConfig, Method } from "axios";
 import { getToken } from "./get-token";
 
-export const BASE_URL = "https://playfi-primary-backend.ashishtiwari.net:7095";
+export const BASE_URL = "https://playfi-primary-backend.ashishtiwari.net";
 
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
