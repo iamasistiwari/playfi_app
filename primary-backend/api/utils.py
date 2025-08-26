@@ -12,6 +12,14 @@ import sys
 
 ytmusic: Optional[YTMusic] = None
 
+
+def is_valid_url(url: str) -> bool:
+    try:
+        result = urlparse(url)
+        return all([result.scheme, result.netloc])
+    except ValueError:
+        return False
+
 def getYTMusic() -> YTMusic:
     global ytmusic
     if ytmusic is None:
@@ -69,7 +77,6 @@ def getExpiryTimeout(music_url: str) -> int:
         print(f"Error extracting expiry: {e}")
         return 60 * 60 * 24  # fallback: 24 hours
 
-
 def youtubeSearch(query: str) -> List[YoutubeVideoType]:
     results = getYTMusic().search(query, filter="songs")
     validated_videos: List[YoutubeVideoType] = []
@@ -105,7 +112,6 @@ def youtubeSearch(query: str) -> List[YoutubeVideoType]:
             continue
 
     return validated_videos
-
 
 def getYoutubeMusicUrl(videoId: str, max_attempts: int = 10) -> Optional[str]:
     

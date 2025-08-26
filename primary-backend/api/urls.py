@@ -14,4 +14,5 @@ urlpatterns = [
     path("update/songTitle", views.updateSongTitle, name="updateSongTitle"),
     path("check/is/admin", views.checkIsAdmin, name="checkIsAdmin"),
     path("makeadmin", views.makeUserAdmin, name="updateUser"),
+    path("permanent/song/", views.addPermanentSongUrl, name="addPermanentSongUrl")
 ]

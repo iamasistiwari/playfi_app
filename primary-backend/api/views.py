@@ -9,7 +9,7 @@ import re
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .utils import youtubeSearch, format_sentence
+from .utils import youtubeSearch, is_valid_url
 from core.utils import create_response
 from rest_framework import status
 from django.core.cache import cache
@@ -62,13 +62,23 @@ def playSong(request):
             status=status.HTTP_404_NOT_FOUND,
         )
     
-    cache_key = f"song_url:{songId}"
-    redis_client = get_redis_client()
-    cached_data = redis_client.get(cache_key)
+    temp_cache_key = f"song_url:{songId}"
+    permenant_cache_key = key = f"permenant_url:{songId}"
 
-    if cached_data:
+    redis_client = get_redis_client()
+
+    permenant_cached_data = redis_client.get(permenant_cache_key)
+
+    if permenant_cached_data:
         return Response(
-            create_response(True, "Feteched from cache", {"url":cached_data}), status=status.HTTP_200_OK
+            create_response(True, "Feteched from permenant cached data", {"url":permenant_cached_data}), status=status.HTTP_200_OK
+        )
+
+    temp_cached_data = redis_client.get(temp_cache_key)
+
+    if temp_cached_data:
+        return Response(
+            create_response(True, "Feteched from temp cached data", {"url":temp_cached_data}), status=status.HTTP_200_OK
         )
 
     try:
@@ -76,7 +86,7 @@ def playSong(request):
         time.sleep(2)
         c = 0
         while c < 10:
-            cached_data = redis_client.get(cache_key)
+            cached_data = redis_client.get(temp_cache_key)
             if cached_data:
                 return Response(
                     create_response(True, "Fetched Realtime", {"url":cached_data}), status=status.HTTP_200_OK
@@ -262,6 +272,32 @@ def makeUserAdmin(request):
         return Response(create_response(True, f"User {user.username} is now an admin."), status=status.HTTP_200_OK)
     except User.DoesNotExist:
         return Response(create_response(False, "User not found."), status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(["POST"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def addPermanentSongUrl(request):
+    print("request came")
+    if not request.user.is_superuser:
+        return Response(create_response(False, "Only superusers can add urls"), status=status.HTTP_403_FORBIDDEN)
+    video_id = request.data.get("video_id")
+    song_url = request.data.get("song_url")
+    update = request.data.get("update")
+
+    if not video_id or not song_url:
+        return Response(create_response(False, "video_id & song_url are required"), status=status.HTTP_404_NOT_FOUND)
+    
+    if not is_valid_url(song_url):
+        return Response(create_response(False, "song_url must be valid"), status=status.HTTP_404_NOT_FOUND)
+
+    redis = get_redis_client()
+    key = f"permenant_url:{video_id}"
+    if redis.get(key) and not update:
+        return Response(create_response(False, "already present try update to be true"), status=status.HTTP_208_ALREADY_REPORTED)
+
+    redis.set(key, song_url) 
+    return Response(create_response(False, f"Done {video_id}"), status=status.HTTP_200_OK)
 
 @api_view(["GET"])
 @authentication_classes([JWTAuthentication])
