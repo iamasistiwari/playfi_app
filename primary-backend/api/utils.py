@@ -11,11 +11,27 @@ import subprocess
 import sys
 import requests
 from bs4 import BeautifulSoup
+import redis
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+_redis_client = None
+
+def get_redis_client():
+    global _redis_client
+    if _redis_client is None:
+        _redis_client = redis.Redis(
+            host=os.getenv("REDIS_HOST"),
+            port=os.getenv("REDIS_PORT"),
+            db=1,
+            password=os.getenv("REDIS_PASSWORD"),
+            decode_responses=True
+        )
+    return _redis_client
 
 ytmusic: Optional[YTMusic] = None
-
-
-
 
 def fetch_320kbps(url: str) -> str:
     headers = {"User-Agent": "Mozilla/5.0"}
@@ -101,7 +117,7 @@ def youtubeSearch(query: str) -> List[YoutubeVideoType]:
     results = getYTMusic().search(query, filter="songs")
     validated_videos: List[YoutubeVideoType] = []
 
-    for video in results[:5]:  
+    for video in results[:7]:  
         try:
             mapped_video = {
                 "type": video.get("videoType", ""),
@@ -128,10 +144,29 @@ def youtubeSearch(query: str) -> List[YoutubeVideoType]:
             validated = YoutubeVideoType.model_validate(mapped_video)
             validated_videos.append(validated.model_dump())  # now this works
         except Exception as e:
-            print("Error validating video:", e)
             continue
 
     return validated_videos
+
+def getVideoDetails(video_id: str) -> List[YoutubeVideoType]:
+    results = getYTMusic().get_song(video_id)
+    return results
+
+def get_high_image_url(video_id: dict) -> str:
+    # check for image cache
+    redis_client = get_redis_client()
+    image_url = redis_client.get(f"image:{video_id}")
+    if image_url:
+        return image_url
+
+    video_details = getVideoDetails(video_id)
+    thumbnails = video_details["videoDetails"].get("thumbnail", {}).get("thumbnails", [])
+    if not thumbnails:
+        return None
+    # Get the one with maximum width (safest approach)
+    image_url = max(thumbnails, key=lambda t: t.get("width", 0)).get("url")
+    redis_client.set(f"image:{video_id}", image_url)
+    return image_url
 
 def getYoutubeMusicUrl(videoId: str, max_attempts: int = 10) -> Optional[str]:
     
@@ -248,3 +283,7 @@ def _extractAudioUrl(videoId: str, attempt_num: int) -> Optional[str]:
         else:
             print(f"[Attempt {attempt_num}] Error: Invalid URL received")
             return None
+
+def check_valid_youtubeId(videoId: str) -> bool:
+    pattern = r'^[a-zA-Z0-9_-]{11}$'
+    return bool(re.match(pattern, videoId))

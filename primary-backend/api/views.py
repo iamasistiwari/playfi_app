@@ -9,7 +9,7 @@ import re
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .utils import youtubeSearch, is_valid_url, fetch_320kbps
+from .utils import youtubeSearch, is_valid_url, fetch_320kbps, getVideoDetails,get_high_image_url, check_valid_youtubeId, get_redis_client
 from core.utils import create_response
 from rest_framework import status
 from django.core.cache import cache
@@ -21,26 +21,6 @@ from django.db.models import Q
 from .serializers import PlaylistSerializer, PlaylistDetailSerializer, PlaylistMiniDetailsSerializer
 from rest_framework.views import APIView
 import time
-import redis
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-_redis_client = None
-
-def get_redis_client():
-    global _redis_client
-    if _redis_client is None:
-        _redis_client = redis.Redis(
-            host=os.getenv("REDIS_HOST"),
-            port=os.getenv("REDIS_PORT"),
-            db=1,
-            password=os.getenv("REDIS_PASSWORD"),
-            decode_responses=True
-        )
-    return _redis_client
-
 
 @api_view(["GET"])
 @authentication_classes([JWTAuthentication])
@@ -53,15 +33,14 @@ def playSong(request):
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    pattern = r'^[a-zA-Z0-9_-]{11}$'
-    is_valid_id = bool(re.match(pattern, songId))
-
-    if not is_valid_id :
+    if not check_valid_youtubeId(songId) :
         return Response(
             create_response(False, "Youtube video id is not valid"),
             status=status.HTTP_404_NOT_FOUND,
         )
-    
+
+    high_image_url = get_high_image_url(songId)
+
     temp_cache_key = f"song_url:{songId}"
     permenant_cache_key = key = f"permenant_url:{songId}"
 
@@ -71,16 +50,14 @@ def playSong(request):
 
     if permenant_cached_data:
         return Response(
-            create_response(True, "Feteched from permenant cached data", {"url":permenant_cached_data}), status=status.HTTP_200_OK
+            create_response(True, "Feteched from permenant cached data", {"url":permenant_cached_data, "image_url":high_image_url}), status=status.HTTP_200_OK
         )
 
     temp_cached_data = redis_client.get(temp_cache_key)
-
     if temp_cached_data:
         return Response(
-            create_response(True, "Feteched from temp cached data", {"url":temp_cached_data}), status=status.HTTP_200_OK
+            create_response(True, "Feteched from temp cached data", {"url":temp_cached_data, "image_url":high_image_url}), status=status.HTTP_200_OK    
         )
-
     try:
         redis_client.lpush("song_tasks", songId)  
         time.sleep(2)
@@ -89,7 +66,7 @@ def playSong(request):
             cached_data = redis_client.get(temp_cache_key)
             if cached_data:
                 return Response(
-                    create_response(True, "Fetched Realtime", {"url":cached_data}), status=status.HTTP_200_OK
+                    create_response(True, "Fetched Realtime", {"url":cached_data, "image_url":high_image_url}), status=status.HTTP_200_OK
                 )
             time.sleep(1)
             c += 1
@@ -135,7 +112,7 @@ def searchSongs(request):
 
     try:
         results = youtubeSearch(q)
-        cache.set(cache_key, results, timeout=60 * 60 * 24 * 7)  # Cache for 1 week
+        cache.set(cache_key, results, timeout=60 * 60 * 1)  # Cache for 1 hour
         return Response(
             create_response(True, "Feteched", results), status=status.HTTP_200_OK
         )
@@ -248,6 +225,12 @@ def updateSongTitle(request):
     if not song_id or not title:
         return Response(create_response(False, "playlist_id, song_id and title are required"), status=status.HTTP_400_BAD_REQUEST)
         
+    if not check_valid_youtubeId(song_id) :
+        return Response(
+            create_response(False, "Youtube video id is not valid"),
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    
     try:
         song = Songs.objects.get(id=song_id)
         song.title = title
@@ -273,7 +256,6 @@ def makeUserAdmin(request):
     except User.DoesNotExist:
         return Response(create_response(False, "User not found."), status=status.HTTP_404_NOT_FOUND)
 
-
 @api_view(["POST"])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
@@ -290,17 +272,79 @@ def addPermanentSongFromSiteUrl(request):
     if not is_valid_url(site_url):
         return Response(create_response(False, "site_url must be valid"), status=status.HTTP_404_NOT_FOUND)
 
+    if not check_valid_youtubeId(video_id) :
+        return Response(
+            create_response(False, "Youtube video id is not valid"),
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
     redis = get_redis_client()
     key = f"permenant_url:{video_id}"
+
+    video_image_url = get_high_image_url(video_id)
+
     isAlready = redis.get(key)
     if isAlready and not update:
-        return Response(create_response(False, f"already present try update to be true: {isAlready}"), status=status.HTTP_208_ALREADY_REPORTED)
+        return Response(create_response(False, f"Already present!! try update to be true to update the link", {
+            "song_url":isAlready,
+            "video_id":video_id,
+            "image_url":video_image_url
+        }), status=status.HTTP_208_ALREADY_REPORTED)
     song_url = fetch_320kbps(site_url)
     if not song_url:
         return Response(create_response(False, f"Could not fetch 320kbps song from site_url: {site_url}"), status=status.HTTP_404_NOT_FOUND)
     redis.set(key, song_url) 
-    return Response(create_response(False, f"Done {video_id} with song_url: {song_url}"), status=status.HTTP_200_OK)
+    return Response(create_response(False, f"Done", {
+        "song_url":song_url,
+        "video_id":video_id,
+        "image_url":video_image_url
+    }), status=status.HTTP_200_OK)
 
+@api_view(["POST"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def addPermanentSongFromSiteUrlWithQuery(request):
+    if not request.user.is_superuser:
+        return Response(create_response(False, "Only superusers can add urls"), status=status.HTTP_403_FORBIDDEN)
+    
+    query = request.data.get("query")
+    site_url = request.data.get("site_url")
+    update = request.data.get("update")
+
+    if not query or not site_url:
+        return Response(create_response(False, "query & site_url are required"), status=status.HTTP_404_NOT_FOUND)
+    
+    if not is_valid_url(site_url):
+        return Response(create_response(False, "site_url must be valid"), status=status.HTTP_404_NOT_FOUND)
+
+    song_search = youtubeSearch(query)
+    song = song_search[0]
+    video_id = song["id"]
+
+    if not video_id:
+        return Response(create_response(False, f"Could not fetch video_id from query: {query}"), status=status.HTTP_404_NOT_FOUND)
+
+    video_image_url = get_high_image_url(video_id)
+
+    redis = get_redis_client()
+    key = f"permenant_url:{video_id}"
+    isAlready = redis.get(key)
+    if isAlready and not update:
+        return Response(create_response(False, f"Already present!! try update to be true to update the link", {
+            "song_url":isAlready,
+            "video_id":video_id,
+            "image_url":video_image_url
+        }), status=status.HTTP_208_ALREADY_REPORTED)
+    
+    song_url = fetch_320kbps(site_url)
+    if not song_url:
+        return Response(create_response(False, f"Could not fetch 320kbps song from site_url: {site_url}"), status=status.HTTP_404_NOT_FOUND)
+    redis.set(key, song_url) 
+    return Response(create_response(False, f"Done", {
+        "song_url":song_url,
+        "video_id":video_id,
+        "image_url":video_image_url
+    }), status=status.HTTP_200_OK)
 
 @api_view(["POST"])
 @authentication_classes([JWTAuthentication])
@@ -318,14 +362,59 @@ def addPermanentSongUrl(request):
     if not is_valid_url(song_url):
         return Response(create_response(False, "song_url must be valid"), status=status.HTTP_404_NOT_FOUND)
 
+    if not check_valid_youtubeId(video_id) :
+        return Response(
+            create_response(False, "Youtube video id is not valid"),
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
     redis = get_redis_client()
+
+    video_image_url = get_high_image_url(video_id)
+
     key = f"permenant_url:{video_id}"
     isAlready = redis.get(key)
     if isAlready and not update:
-        return Response(create_response(False, f"already present try update to be true, url: {isAlready}"), status=status.HTTP_208_ALREADY_REPORTED)
+        return Response(create_response(False, f"Already present!! try update to be true to update the link", {
+            "song_url":isAlready,
+            "video_id":video_id,
+            "image_url":video_image_url
+        }), status=status.HTTP_208_ALREADY_REPORTED)
 
     redis.set(key, song_url) 
-    return Response(create_response(False, f"Done {video_id}"), status=status.HTTP_200_OK)
+    return Response(create_response(False, f"Done", {
+        "song_url":song_url,
+        "video_id":video_id,
+        "image_url":video_image_url
+    }), status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def fetchVideoDetails(request):
+    songId = request.GET.get("songId", "").replace(" ", "").strip('"')
+    if not songId :
+        return Response(
+            create_response(False, "Query parameter 'songId' is required"),
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    pattern = r'^[a-zA-Z0-9_-]{11}$'
+    is_valid_id = bool(re.match(pattern, songId))
+
+    if not is_valid_id :
+        return Response(
+            create_response(False, "Youtube video id is not valid"),
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    video_details = getVideoDetails(songId)
+    if not video_details:
+        return Response(
+            create_response(False, "Could not fetch video details"),
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    return Response(create_response(True, video_details), status=status.HTTP_200_OK)
 
 @api_view(["GET"])
 @authentication_classes([JWTAuthentication])
@@ -372,7 +461,6 @@ def removeSongFromPlaylist(request):
         
     except Songs.DoesNotExist:
         return Response(create_response(False, "Song not found"), status=status.HTTP_404_NOT_FOUND)
-
 
 @api_view(["POST"])
 @authentication_classes([JWTAuthentication])
