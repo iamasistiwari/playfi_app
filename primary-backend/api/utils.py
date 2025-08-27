@@ -156,8 +156,11 @@ def getVideoDetails(video_id: str) -> List[YoutubeVideoType]:
         if video_details:
             return json.loads(video_details)   
         results = getYTMusic().get_song(video_id)
-        redis_client.set(f"video_details:{video_id}", json.dumps(results))
-        return results
+        thumbnails = video_details.get("videoDetails", {}).get("thumbnail", {}).get("thumbnails", [])
+        if thumbnails:
+            redis_client.set(f"video_details:{video_id}", json.dumps(results))
+            return results
+        return None
     except Exception as e:
         print(f"Error getting video details: {e}")
         return None
@@ -299,7 +302,6 @@ def _extractAudioUrl(videoId: str, attempt_num: int) -> Optional[str]:
 def check_valid_youtubeId(videoId: str) -> bool:
     pattern = r'^[a-zA-Z0-9_-]{11}$'
     return bool(re.match(pattern, videoId))
-
 
 def check_url_song_mismatch(title: str, song_url: str) -> bool:
     """
