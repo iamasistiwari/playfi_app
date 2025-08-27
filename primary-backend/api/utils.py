@@ -300,10 +300,17 @@ def check_valid_youtubeId(videoId: str) -> bool:
     pattern = r'^[a-zA-Z0-9_-]{11}$'
     return bool(re.match(pattern, videoId))
 
+
 def check_url_song_mismatch(title: str, song_url: str) -> bool:
+    """
+    Returns True if mismatch, False if matched.
+    Cleans title, extracts keywords, and checks if they exist in song_url.
+    """
+    # Remove (feat. ...) or [feat. ...] and (From "...")
+    title = re.sub(r"\(feat.*?\)|\[feat.*?\]|\(from.*?\)", "", title, flags=re.IGNORECASE)
     
-    # Remove (feat. ...) or [feat. ...]
-    title = re.sub(r"\(feat.*?\)|\[feat.*?\]", "", title, flags=re.IGNORECASE)
+    # Replace separators like /, |, & with space
+    title = re.sub(r"[\/|&]", " ", title)
     
     # Remove special characters except letters, numbers, spaces
     title = re.sub(r"[^a-zA-Z0-9\s]", " ", title)
@@ -311,12 +318,14 @@ def check_url_song_mismatch(title: str, song_url: str) -> bool:
     # Collapse multiple spaces
     title = re.sub(r"\s+", " ", title).strip()
 
+    # Lowercase
     title = title.lower()
     song_url = song_url.lower()
 
-    # if title exits in song_url then it is a valid song
+    # Split title into parts (words/phrases)
+    words = title.split()
 
-    if title not in song_url:
-        return True
-        
-    return False
+    # Try to find at least one strong keyword (>=3 letters) in song_url
+    matched = any(word for word in words if len(word) > 2 and word in song_url)
+
+    return not matched

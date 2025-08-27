@@ -345,17 +345,21 @@ def addPermanentSongFromSiteUrlWithQuery(request):
 
         if check_url_song_mismatch(song_title, song_url):
             return Response(create_response(False, f"Song info mismatch", {
-                "song_title":song_title,
-                "song_url":song_url,
+                "query":query,
                 "site_url":site_url,
+                "song_url":song_url,
+                "song_title":song_title,
                 "video_id":video_id,
-                "video_image_url":video_image_url
+                "image_url":video_image_url
             }), status=status.HTTP_404_NOT_FOUND)
         redis.set(key, song_url) 
         return Response(create_response(False, f"Done", {
+            "query":query,
+            "site_url":site_url,
             "song_url":song_url,
+            "song_title":song_title,
             "video_id":video_id,
-            "image_url":video_image_url
+            "image_url":video_image_url,
         }), status=status.HTTP_200_OK)
     except Exception as e:
         return Response(create_response(False, f"Could not fetch 320kbps song from site_url: {site_url}"), status=status.HTTP_404_NOT_FOUND)
