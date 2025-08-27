@@ -118,7 +118,7 @@ def youtubeSearch(query: str) -> List[YoutubeVideoType]:
     results = getYTMusic().search(query, filter="songs")
     validated_videos: List[YoutubeVideoType] = []
 
-    for video in results[:7]:  
+    for video in results[:6]:  
         try:
             mapped_video = {
                 "type": video.get("videoType", ""),

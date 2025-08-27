@@ -320,8 +320,8 @@ def addPermanentSongFromSiteUrlWithQuery(request):
     try:
         song_search = youtubeSearch(query)
         song = song_search[0]
+        song_title = song.get("title")
         video_id = song["id"]
-    
 
         if not video_id:
             return Response(create_response(False, f"Could not fetch video_id from query: {query}"), status=status.HTTP_404_NOT_FOUND)
@@ -337,18 +337,29 @@ def addPermanentSongFromSiteUrlWithQuery(request):
                 "image_url":video_image_url
             }), status=status.HTTP_208_ALREADY_REPORTED)
     except Exception as e:
-        print("here is exception",e)
         return Response(create_response(False, f"Could not fetch video_id from query: {query}"), status=status.HTTP_404_NOT_FOUND)
+    try:
+        song_url = fetch_320kbps(site_url)
+        if not song_url:
+            return Response(create_response(False, f"Could not fetch 320kbps song from site_url: {site_url}"), status=status.HTTP_404_NOT_FOUND)
 
-    song_url = fetch_320kbps(site_url)
-    if not song_url:
+        if not song_title.lower() in song_url.lower():
+            return Response(create_response(False, f"Song info mismatch", {
+                "song_title":song_title,
+                "song_url":song_url,
+                "site_url":site_url,
+                "video_id":video_id,
+                "video_image_url":video_image_url
+            }), status=status.HTTP_404_NOT_FOUND)
+        redis.set(key, song_url) 
+        return Response(create_response(False, f"Done", {
+            "song_url":song_url,
+            "video_id":video_id,
+            "image_url":video_image_url
+        }), status=status.HTTP_200_OK)
+    except Exception as e:
         return Response(create_response(False, f"Could not fetch 320kbps song from site_url: {site_url}"), status=status.HTTP_404_NOT_FOUND)
-    redis.set(key, song_url) 
-    return Response(create_response(False, f"Done", {
-        "song_url":song_url,
-        "video_id":video_id,
-        "image_url":video_image_url
-    }), status=status.HTTP_200_OK)
+
 
 @api_view(["POST"])
 @authentication_classes([JWTAuthentication])
