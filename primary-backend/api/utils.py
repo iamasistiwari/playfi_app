@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 import redis
 import os
 from dotenv import load_dotenv
+import json
 
 load_dotenv()
 
@@ -149,8 +150,17 @@ def youtubeSearch(query: str) -> List[YoutubeVideoType]:
     return validated_videos
 
 def getVideoDetails(video_id: str) -> List[YoutubeVideoType]:
-    results = getYTMusic().get_song(video_id)
-    return results
+    try:
+        redis_client = get_redis_client()
+        video_details = redis_client.get(f"video_details:{video_id}")
+        if video_details:
+            return json.loads(video_details)   
+        results = getYTMusic().get_song(video_id)
+        redis_client.set(f"video_details:{video_id}", json.dumps(results))
+        return results
+    except Exception as e:
+        print(f"Error getting video details: {e}")
+        return None
 
 def get_high_image_url(video_id: dict) -> str:
     # check for image cache
@@ -158,16 +168,18 @@ def get_high_image_url(video_id: dict) -> str:
     image_url = redis_client.get(f"image:{video_id}")
     if image_url:
         return image_url
-
-    video_details = getVideoDetails(video_id)
-    thumbnails = video_details["videoDetails"].get("thumbnail", {}).get("thumbnails", [])
-    if not thumbnails:
+    try:
+        video_details = getVideoDetails(video_id)
+        thumbnails = video_details.get("videoDetails", {}).get("thumbnail", {}).get("thumbnails", [])
+        if not thumbnails:
+            return None
+        # Get the one with maximum width (safest approach)
+        image_url = max(thumbnails, key=lambda t: t.get("width", 0)).get("url")
+        redis_client.set(f"image:{video_id}", image_url)
+        return image_url
+    except:
         return None
-    # Get the one with maximum width (safest approach)
-    image_url = max(thumbnails, key=lambda t: t.get("width", 0)).get("url")
-    redis_client.set(f"image:{video_id}", image_url)
-    return image_url
-
+    
 def getYoutubeMusicUrl(videoId: str, max_attempts: int = 10) -> Optional[str]:
     
     for attempt in range(1, max_attempts + 1):
