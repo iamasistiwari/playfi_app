@@ -1,11 +1,6 @@
 import { AppDispatch, RootState } from "@/redux/store";
 import { playNextAsync } from "@/redux/thunks/songThunk";
-import {
-  AudioPlayer,
-  useAudioPlayer,
-  setAudioModeAsync,
-  setIsAudioActiveAsync,
-} from "expo-audio";
+import { AudioPlayer, useAudioPlayer, setAudioModeAsync } from "expo-audio";
 import React, {
   createContext,
   useContext,
@@ -41,7 +36,9 @@ const PlayerContext = createContext<PlayerContextProps>({
 
 export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   const firstMount = useRef(false);
-  const { currentSong } = useSelector((state: RootState) => state.songPlayer);
+  const { currentSong, queue } = useSelector(
+    (state: RootState) => state.songPlayer
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
   const [playerState, setPlayerState] = useState({
@@ -49,7 +46,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
     duration: 0,
     isBuffering: false,
   });
-  const player = useAudioPlayer(currentSong?.musicUrl);
+  const player = useAudioPlayer("https://p320.djpunjab.is/data/320/57221/307010/Sirra - Guru Randhawa.mp3");
 
   useEffect(() => {
     const listener = player?.addListener("playbackStatusUpdate", (status) => {
@@ -58,8 +55,11 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
         duration: status.duration,
         isBuffering: status.isBuffering,
       });
+      
       if (status.didJustFinish) {
         setIsPlaying(false);
+      }
+      if (!status.isBuffering && status.duration - status.currentTime < 2) {
         dispatch(playNextAsync());
       }
     });
@@ -74,11 +74,10 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     setAudioModeAsync({
+      playsInSilentMode: true,
       shouldPlayInBackground: true,
       interruptionMode: "doNotMix",
-      interruptionModeAndroid: "doNotMix",
     });
-    setIsAudioActiveAsync(true);
   }, []);
 
   useEffect(() => {

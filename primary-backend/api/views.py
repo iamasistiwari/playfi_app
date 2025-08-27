@@ -1,4 +1,5 @@
 from time import time
+from tkinter import TRUE
 from rest_framework.decorators import (
     api_view,
     permission_classes,
@@ -352,8 +353,9 @@ def addPermanentSongFromSiteUrlWithQuery(request):
                 "video_id":video_id,
                 "image_url":video_image_url
             }), status=status.HTTP_404_NOT_FOUND)
+            
         redis.set(key, song_url) 
-        return Response(create_response(False, f"Done", {
+        return Response(create_response(True, f"Done", {
             "query":query,
             "site_url":site_url,
             "song_url":song_url,

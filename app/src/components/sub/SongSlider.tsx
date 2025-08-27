@@ -13,7 +13,12 @@ const SongSlider = () => {
   return (
     <View style={styles.container}>
       <Slider
-        style={{ width: "100%", height: 50, borderRadius: 4 }}
+        style={{
+          width: "100%",
+          height: 50,
+          borderRadius: 4,
+          transform: [{ scale: 1.5 }],
+        }}
         minimumValue={0}
         maximumValue={duration}
         value={position}
@@ -35,17 +40,18 @@ const SongSlider = () => {
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingHorizontal: 30,
+    marginTop: 90,
   },
   timeRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: -8,
+    marginTop: -10,
   },
   time: {
     color: "#fff",
     fontSize: 14,
+    fontWeight: "600",
   },
 });
 

@@ -12,7 +12,7 @@ cookies.txt
 dist/
 web-build/
 expo-env.d.ts
-
+music/
 # Native
 .kotlin/
 *.orig.*

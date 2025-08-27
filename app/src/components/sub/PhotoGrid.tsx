@@ -22,7 +22,7 @@ const PhotoGrid = ({ collageImages }: { collageImages: string[] }) => {
     );
   return (
     <View
-      style={{ width: 130, height: 130, borderRadius: 8, overflow: "hidden" }}
+      style={{ width: 120, height: 120, borderRadius: 8, overflow: "hidden" }}
     >
       {collageImages.length === 1 && (
         <Image

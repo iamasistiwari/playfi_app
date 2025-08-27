@@ -1,0 +1,16 @@
+venv
+.env
+.gitignore
+__pycache__
+*.pyc
+.DS_Store
+*.log
+*.sqlite3
+instance
+*.egg-info
+dist
+build
+*.egg
+*.tar.gz
+*.whl
+*.env   

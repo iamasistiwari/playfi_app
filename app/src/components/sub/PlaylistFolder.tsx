@@ -7,7 +7,7 @@ import { useRouter } from "expo-router";
 const PlaylistFolder = ({ playlist }: { playlist: Playlist }) => {
   const router = useRouter();
   const collageImages = (playlist?.songs || [])
-    .map((song) => song?.thumbnails?.[0]?.url)
+    .map((song) => song?.thumbnails?.at(-1).url)
     .filter(Boolean)
     .slice(0, 4);
 

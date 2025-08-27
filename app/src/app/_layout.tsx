@@ -25,8 +25,8 @@ export default function Layout() {
         <GestureHandlerRootView>
           <StatusBar barStyle="light-content" backgroundColor="#121212" />
           <SafeScreen>
-            <Toast />
             <MenuProvider>
+              <Toast />
               <Slot />
             </MenuProvider>
           </SafeScreen>

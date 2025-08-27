@@ -20,7 +20,7 @@ import { useRouter } from "expo-router";
 import SongImage from "@/components/sub/SongImage";
 
 const Song = () => {
-  const { currentSong, loading } = useSelector(
+  const { currentSong, loading, queue } = useSelector(
     (state: RootState) => state.songPlayer
   );
   const {
@@ -60,16 +60,18 @@ const Song = () => {
           <View className="absolute right-4 top-4">
             <CustomMenu video={currentSong?.video} />
           </View>
-          <View>
-            <SongImage
-              url={currentSong?.video?.thumbnails?.at(-1)?.url || ""}
-              width={300}
-              height={300}
-            />
-            <View className="flex flex-col items-center justify-center my-10 overflow-hidden">
+          <View className="flex flex-col items-center justify-center">
+            <View className="flex flex-row items-center justify-center ">
+              <SongImage
+                url={currentSong?.video?.thumbnails?.at(-1)?.url || ""}
+                width={200}
+                height={200}
+              />
+            </View>
+            <View className="flex flex-col items-center justify-center overflow-hidden">
               <Text
                 numberOfLines={1}
-                className="text-center text-white text-2xl font-bold max-w-[70vw]"
+                className="text-center text-white text-4xl font-bold max-w-[70vw] mt-10"
               >
                 {currentSong?.video?.title || "No title"}
               </Text>
@@ -86,10 +88,9 @@ const Song = () => {
               className="px-0 py-0 h-full opacity-70"
               variant={"ghost"}
               icon={
-                <Ionicons name="play-skip-back" size={30} color="#e5e5e5" />
+                <Ionicons name="play-skip-back" size={35} color="#e5e5e5" />
               }
-              onPress={(e) => {
-                e.stopPropagation();
+              onPress={() => {
                 seekTo(0);
               }}
             />
@@ -102,13 +103,12 @@ const Song = () => {
                 variant={"ghost"}
                 icon={
                   isPlaying ? (
-                    <Ionicons name="pause-circle" size={65} color="#e5e5e5" />
+                    <Ionicons name="pause-circle" size={75} color="#16a34a" />
                   ) : (
-                    <Ionicons name="play-circle" size={65} color="#e5e5e5" />
+                    <Ionicons name="play-circle" size={75} color="#e5e5e5" />
                   )
                 }
-                onPress={(e) => {
-                  e.stopPropagation();
+                onPress={() => {
                   togglePlayPause();
                 }}
               />
@@ -118,10 +118,9 @@ const Song = () => {
               className="px-0 py-0 h-full opacity-70"
               variant={"ghost"}
               icon={
-                <Ionicons name="play-skip-forward" size={30} color="#e5e5e5" />
+                <Ionicons name="play-skip-forward" size={35} color="#e5e5e5" />
               }
-              onPress={(e) => {
-                e.stopPropagation();
+              onPress={() => {
                 dispatch(playNextAsync());
               }}
             />

@@ -11,6 +11,7 @@ import { AppDispatch, RootState } from "@/redux/store";
 import { setSongAsync } from "@/redux/thunks/songThunk";
 import CustomMenu from "./Menu";
 import { cn } from "@/lib/utils";
+import SongImage from "./SongImage";
 
 const SongTile = ({ data }: { data: Video }) => {
   const { currentSong } = useSelector((state: RootState) => state.songPlayer);
@@ -22,7 +23,6 @@ const SongTile = ({ data }: { data: Video }) => {
     opacity: opacity.value,
     transform: [{ translateX: translateX.value }],
   }));
-  
 
   useEffect(() => {
     opacity.value = withTiming(1, { duration: 500 });
@@ -40,7 +40,7 @@ const SongTile = ({ data }: { data: Video }) => {
         className="flex flex-row items-center justify-center"
       >
         <Image
-          source={{ uri: data.thumbnails?.[0]?.url }}
+          source={{ uri: data.thumbnails?.at(-1).url }}
           className={cn("w-[60px] h-[60px] rounded-lg", {
             "border-2 border-[#16a34a]": currentSong?.video?.id === data.id,
           })}
@@ -58,7 +58,6 @@ const SongTile = ({ data }: { data: Video }) => {
             {data.title}
           </Text>
           <Text style={styles.channel}>{data.channel.name}</Text>
-          
         </View>
         <CustomMenu video={data} />
       </Pressable>
