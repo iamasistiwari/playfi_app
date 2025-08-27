@@ -9,7 +9,7 @@ import re
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .utils import youtubeSearch, is_valid_url, fetch_320kbps, getVideoDetails,get_high_image_url, check_valid_youtubeId, get_redis_client
+from .utils import youtubeSearch, is_valid_url, fetch_320kbps, getVideoDetails,get_high_image_url, check_valid_youtubeId, get_redis_client, check_url_song_mismatch
 from core.utils import create_response
 from rest_framework import status
 from django.core.cache import cache
@@ -343,7 +343,7 @@ def addPermanentSongFromSiteUrlWithQuery(request):
         if not song_url:
             return Response(create_response(False, f"Could not fetch 320kbps song from site_url: {site_url}"), status=status.HTTP_404_NOT_FOUND)
 
-        if not song_title.lower() in song_url.lower():
+        if check_url_song_mismatch(song_title, song_url):
             return Response(create_response(False, f"Song info mismatch", {
                 "song_title":song_title,
                 "song_url":song_url,

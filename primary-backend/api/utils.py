@@ -299,3 +299,24 @@ def _extractAudioUrl(videoId: str, attempt_num: int) -> Optional[str]:
 def check_valid_youtubeId(videoId: str) -> bool:
     pattern = r'^[a-zA-Z0-9_-]{11}$'
     return bool(re.match(pattern, videoId))
+
+def check_url_song_mismatch(title: str, song_url: str) -> bool:
+    
+    # Remove (feat. ...) or [feat. ...]
+    title = re.sub(r"\(feat.*?\)|\[feat.*?\]", "", title, flags=re.IGNORECASE)
+    
+    # Remove special characters except letters, numbers, spaces
+    title = re.sub(r"[^a-zA-Z0-9\s]", " ", title)
+    
+    # Collapse multiple spaces
+    title = re.sub(r"\s+", " ", title).strip()
+
+    title = title.lower()
+    song_url = song_url.lower()
+
+    # if title exits in song_url then it is a valid song
+
+    if title not in song_url:
+        return True
+        
+    return False
