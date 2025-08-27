@@ -18,21 +18,21 @@ import json
 
 load_dotenv()
 
-_redis_client = None
+redis_client = None
 
 def get_redis_client():
-    global _redis_client
-    if _redis_client is None:
-        _redis_client = redis.Redis(
+    global redis_client
+    if redis_client is None:
+        redis_client = redis.Redis(
             host=os.getenv("REDIS_HOST"),
             port=os.getenv("REDIS_PORT"),
             db=1,
             password=os.getenv("REDIS_PASSWORD"),
             decode_responses=True
         )
-    return _redis_client
+    return redis_client
 
-ytmusic: Optional[YTMusic] = None
+
 
 def fetch_320kbps(url: str) -> str:
     headers = {"User-Agent": "Mozilla/5.0"}
@@ -57,6 +57,7 @@ def is_valid_url(url: str) -> bool:
     except ValueError:
         return False
 
+ytmusic: Optional[YTMusic] = None
 def getYTMusic() -> YTMusic:
     global ytmusic
     if ytmusic is None:
@@ -149,17 +150,24 @@ def youtubeSearch(query: str) -> List[YoutubeVideoType]:
 
     return validated_videos
 
-def getVideoDetails(video_id: str) -> List[YoutubeVideoType]:
+def getVideoDetails(video_id: str) -> dict:
     try:
         redis_client = get_redis_client()
-        video_details = redis_client.get(f"video_details:{video_id}")
+        key = f"video_details:{video_id}"
+        video_details = redis_client.get(key)
         if video_details:
-            return json.loads(video_details)   
-        results = getYTMusic().get_song(video_id)
-        thumbnails = video_details.get("videoDetails", {}).get("thumbnail", {}).get("thumbnails", [])
-        if thumbnails:
-            redis_client.set(f"video_details:{video_id}", json.dumps(results))
-            return results
+            return json.loads(video_details) 
+        # put into redis queue
+        print("put into redis queue")
+        redis_client.lpush("video_details", video_id)  
+        time.sleep(2)
+        c = 0
+        while c < 5:
+            video_details = redis_client.get(key)
+            if video_details:
+                return json.loads(video_details)  
+            c += 1
+            time.sleep(2)
         return None
     except Exception as e:
         print(f"Error getting video details: {e}")

@@ -418,16 +418,13 @@ def fetchVideoDetails(request):
             create_response(False, "Query parameter 'songId' is required"),
             status=status.HTTP_404_NOT_FOUND,
         )
-
-    pattern = r'^[a-zA-Z0-9_-]{11}$'
-    is_valid_id = bool(re.match(pattern, songId))
-
-    if not is_valid_id :
+    if not check_valid_youtubeId(songId) :
         return Response(
             create_response(False, "Youtube video id is not valid"),
             status=status.HTTP_404_NOT_FOUND,
         )
     video_details = getVideoDetails(songId)
+    
     if not video_details:
         return Response(
             create_response(False, "Could not fetch video details"),
