@@ -9,9 +9,29 @@ import re
 from typing import List, Optional
 import subprocess
 import sys
+import requests
+from bs4 import BeautifulSoup
 
 ytmusic: Optional[YTMusic] = None
 
+
+
+
+def fetch_320kbps(url: str) -> str:
+    headers = {"User-Agent": "Mozilla/5.0"}
+    res = requests.get(url, headers=headers)
+    res.raise_for_status()
+
+    soup = BeautifulSoup(res.text, "html.parser")
+
+    # Look for anchor tags that mention "320 Kbps"
+    link = None
+    for a in soup.select("a[href]"):
+        if "320" in a.text:
+            link = a["href"]
+            break
+
+    return link
 
 def is_valid_url(url: str) -> bool:
     try:

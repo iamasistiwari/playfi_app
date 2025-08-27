@@ -9,7 +9,7 @@ import re
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .utils import youtubeSearch, is_valid_url
+from .utils import youtubeSearch, is_valid_url, fetch_320kbps
 from core.utils import create_response
 from rest_framework import status
 from django.core.cache import cache
@@ -277,8 +277,35 @@ def makeUserAdmin(request):
 @api_view(["POST"])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
+def addPermanentSongFromSiteUrl(request):
+    if not request.user.is_superuser:
+        return Response(create_response(False, "Only superusers can add urls"), status=status.HTTP_403_FORBIDDEN)
+    video_id = request.data.get("video_id")
+    site_url = request.data.get("site_url")
+    update = request.data.get("update")
+
+    if not video_id or not site_url:
+        return Response(create_response(False, "video_id & site_url are required"), status=status.HTTP_404_NOT_FOUND)
+    
+    if not is_valid_url(site_url):
+        return Response(create_response(False, "site_url must be valid"), status=status.HTTP_404_NOT_FOUND)
+
+    redis = get_redis_client()
+    key = f"permenant_url:{video_id}"
+    isAlready = redis.get(key)
+    if isAlready and not update:
+        return Response(create_response(False, f"already present try update to be true: {isAlready}"), status=status.HTTP_208_ALREADY_REPORTED)
+    song_url = fetch_320kbps(site_url)
+    if not song_url:
+        return Response(create_response(False, f"Could not fetch 320kbps song from site_url: {site_url}"), status=status.HTTP_404_NOT_FOUND)
+    redis.set(key, song_url) 
+    return Response(create_response(False, f"Done {video_id} with song_url: {song_url}"), status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
 def addPermanentSongUrl(request):
-    print("request came")
     if not request.user.is_superuser:
         return Response(create_response(False, "Only superusers can add urls"), status=status.HTTP_403_FORBIDDEN)
     video_id = request.data.get("video_id")
@@ -293,8 +320,9 @@ def addPermanentSongUrl(request):
 
     redis = get_redis_client()
     key = f"permenant_url:{video_id}"
-    if redis.get(key) and not update:
-        return Response(create_response(False, "already present try update to be true"), status=status.HTTP_208_ALREADY_REPORTED)
+    isAlready = redis.get(key)
+    if isAlready and not update:
+        return Response(create_response(False, f"already present try update to be true, url: {isAlready}"), status=status.HTTP_208_ALREADY_REPORTED)
 
     redis.set(key, song_url) 
     return Response(create_response(False, f"Done {video_id}"), status=status.HTTP_200_OK)
