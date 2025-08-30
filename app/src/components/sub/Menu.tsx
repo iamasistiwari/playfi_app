@@ -29,7 +29,7 @@ const CustomMenuComponent: React.FC<Props> = ({ video }: Props) => {
 
   const { queue = [] } = useSelector((state: RootState) => state.songPlayer);
 
-  const { userPlaylists, playlist, loading, likedSongsPlaylist } = useSelector(
+  const { userPlaylists, loading, likedSongsPlaylist } = useSelector(
     (state: RootState) => state.playlist
   );
 
@@ -37,8 +37,6 @@ const CustomMenuComponent: React.FC<Props> = ({ video }: Props) => {
 
   const [addToPlaylistDialogVisible, setaddToPlaylistDialogVisible] =
     useState(false);
-
-  const [renameSongDialogVisible, setRenameSongDialogVisible] = useState(false);
 
   const [menuVisible, setmenuVisible] = useState(false);
 
@@ -53,7 +51,7 @@ const CustomMenuComponent: React.FC<Props> = ({ video }: Props) => {
   useEffect(() => {
     if (userPlaylists.length > 0 && !loading) {
       const map: Map<string, boolean> = new Map();
-      playlist.forEach((playlist) => {
+      userPlaylists.forEach((playlist) => {
         map.set(
           playlist.id,
           playlist.songs.some((song) => song.id === video.id)
@@ -61,7 +59,7 @@ const CustomMenuComponent: React.FC<Props> = ({ video }: Props) => {
       });
       setIsSongPresent(map);
     }
-  }, [playlist]);
+  }, [userPlaylists, loading]);
 
   return (
     <View>
@@ -71,7 +69,6 @@ const CustomMenuComponent: React.FC<Props> = ({ video }: Props) => {
         anchor={
           <Pressable
             onPress={(e) => {
-              e.stopPropagation();
               setmenuVisible(true);
             }}
           >
@@ -169,14 +166,15 @@ const CustomMenuComponent: React.FC<Props> = ({ video }: Props) => {
                       playlist.id,
                       video
                     );
-                    dispatch(userPlaylistAsync());
-                    dispatch(globalPlaylistAsync());
+                    // dispatch(userPlaylistAsync());
+                    // dispatch(globalPlaylistAsync());
                     dispatch(
                       fetchSinglePlaylistAsync({
                         playlistId: playlist.id as string,
                         fresh: true,
                       })
                     );
+                    await new Promise((resolve) => setTimeout(resolve, 2000))
                     setSongActionLoading(
                       songActionLoading.map((item, i) =>
                         i === index ? false : item

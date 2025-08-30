@@ -132,6 +132,16 @@ const playlistSlice = createSlice({
         (state, action: PayloadAction<Playlist | null>) => {
           if (action.payload) {
             state.playlist.set(action.payload.id, action.payload);
+            state.userPlaylists = state.userPlaylists.map((item) =>
+              item.id === action.payload?.id
+                ? { ...item, songs: action.payload.songs }
+                : item
+            );
+            state.globalPlaylists = state.globalPlaylists.map((item) =>
+              item.id === action.payload?.id
+                ? { ...item, songs: action.payload.songs }
+                : item
+            );
           }
           state.loading = false;
         }

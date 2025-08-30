@@ -13,19 +13,25 @@ export const searchSongs = async (query: string): Promise<Video[]> => {
   }
 };
 
-export const getSongUrl = async (songId: string): Promise<string> => {
+export const getSongUrl = async (
+  songId: string
+): Promise<{
+  url: string | null;
+  image_url: string | null;
+}> => {
   try {
     const response = await get("/api/v1/playsong/", {
       songId: songId,
     });
-    let url = response?.responseData?.url;
-    if (url) {
-      return url;
-    }
-    return "";
+    let data = {
+      url: response?.responseData?.url || null,
+      image_url: response?.responseData?.image_url || null,
+    };
+    return data;
   } catch (error) {
-    return "";
+    return {
+      url: null,
+      image_url: null,
+    };
   }
 };
-
-

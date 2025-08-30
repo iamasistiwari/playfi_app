@@ -63,7 +63,7 @@ const Song = () => {
           <View className="flex flex-col items-center justify-center">
             <View className="flex flex-row items-center justify-center ">
               <SongImage
-                url={currentSong?.video?.thumbnails?.at(-1)?.url || ""}
+                url={currentSong?.highResImageUrl || currentSong?.video?.thumbnails?.at(-1)?.url || ""}
                 width={200}
                 height={200}
               />

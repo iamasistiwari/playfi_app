@@ -68,11 +68,11 @@ const songPlayerSlice = createSlice({
         (
           state,
           action: PayloadAction<{
-            song: Song;
+            song: Song | null;
             error: string | null;
-          } | null>
+          }>
         ) => {
-          if (!action.payload) {
+          if (!action.payload.song) {
             state.loading = false;
             return;
           }

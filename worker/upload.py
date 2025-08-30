@@ -51,15 +51,12 @@ def UploadToImageKitAIO(file_id: str, music_url: str):
         print(f"Error uploading to ImageKit: {e}")
         return
 
-
 def dowloadLocal(file_id: str, music_url: str) -> str | None:
     output_file = f"music/{file_id}.mp3"
     response = requests.get(music_url, stream=True)
 
     if response.status_code == 200:
-        total_size = int(response.headers.get("content-length", 0))
         downloaded_size = 0
-
         with open(output_file, "wb") as f:
             for chunk in response.iter_content(chunk_size=1024*1024):
                 if chunk:

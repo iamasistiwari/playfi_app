@@ -10,7 +10,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes
 
-
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def handleSignup(request):
@@ -61,7 +60,6 @@ def handleLogin(request):
                 status=status.HTTP_200_OK,
             )
 
-        # Extract field-specific errors for better readability
         error_messages = {}
         for field, errors in serializer.errors.items():
             error_messages[field] = errors[0] if isinstance(errors, list) else errors

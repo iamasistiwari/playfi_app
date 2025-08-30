@@ -4,12 +4,18 @@ import { Video } from "@/types/song";
 import * as FileSystem from "expo-file-system";
 import { RootState } from "../store";
 import { removeSongFromQueue } from "../song-player";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-async function downloadAndMove(musicUrl: string, videoId: string) {
+async function downloadAndMove(musicUrl: string, videoId: string, image_url: string | null) {
   const tempFileUri = `${FileSystem.cacheDirectory}${videoId}_temp_audio.mp4`;
   const finalUri = `${FileSystem.documentDirectory}${videoId}.mp4`;
-
+  
   try {
+    // caching the image url
+    if (image_url) {
+      await AsyncStorage.setItem(`song_image_${videoId}`, image_url);
+    }
+
     // Delete old file if exists
     const oldFile = await FileSystem.getInfoAsync(finalUri);
     if (oldFile.exists) {
@@ -35,24 +41,27 @@ export const setSongAsync = createAsyncThunk(
     // Check if already downloaded
     const fileInfo = await FileSystem.getInfoAsync(fileUri);
     if (fileInfo.exists) {
+      const cachedImage = await AsyncStorage.getItem(`song_image_${video.id}`);
       return {
         song: {
           video,
           musicUrl: fileUri,
+          highResImageUrl: cachedImage,
         },
         error: null,
       };
     }
 
-    const musicUrl = await getSongUrl(video.id);
-    if (!musicUrl) {
+    const data = await getSongUrl(video.id);
+    if (!data.url) {
       return { song: null, error: "No music URL found" };
     }
-    downloadAndMove(musicUrl, video.id);
+    downloadAndMove(data.url, video.id, data.image_url);
     return {
       song: {
         video,
-        musicUrl,
+        musicUrl: data.url,
+        highResImageUrl: data.image_url,
       },
       error: null,
     };

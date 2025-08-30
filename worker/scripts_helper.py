@@ -61,6 +61,7 @@ def get_artist_songs(url: str) -> list[dict]:
         return []
 
 def get_single_tracks(url: str) -> list[dict]:
+    print("url is", url)
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                       "AppleWebKit/537.36 (KHTML, like Gecko) "

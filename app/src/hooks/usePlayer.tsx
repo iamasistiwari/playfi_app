@@ -46,9 +46,12 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
     duration: 0,
     isBuffering: false,
   });
-  const player = useAudioPlayer("https://p320.djpunjab.is/data/320/57221/307010/Sirra - Guru Randhawa.mp3");
+  const listenerAdded = useRef(false);
+  const player = useAudioPlayer(currentSong?.musicUrl);
 
   useEffect(() => {
+    if (!player || listenerAdded.current) return;
+
     const listener = player?.addListener("playbackStatusUpdate", (status) => {
       setPlayerState({
         position: status.currentTime,
@@ -59,12 +62,15 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
       if (status.didJustFinish) {
         setIsPlaying(false);
       }
-      if (!status.isBuffering && status.duration - status.currentTime < 2) {
+      if (status.playing && !status.isBuffering && (status.duration - status.currentTime <= 2)) {
         dispatch(playNextAsync());
       }
     });
+    listenerAdded.current = true;
+
     return () => {
       listener?.remove();
+      listenerAdded.current = false;
     };
   }, [player]);
 
