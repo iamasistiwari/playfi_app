@@ -1,5 +1,4 @@
 from time import time
-from tkinter import TRUE
 from rest_framework.decorators import (
     api_view,
     permission_classes,
