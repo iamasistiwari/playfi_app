@@ -28,6 +28,8 @@ jobs:
             --exclude='.git' \
             --exclude='.vscode' \
             --exclude='app/' \
+            --exclude='worker/' \
+            --exclude='docker/' \
             ./ \
             administrator@${{ secrets.VPS_HOST }}:/home/administrator/playfi-app/
 
