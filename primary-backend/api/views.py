@@ -365,7 +365,6 @@ def addPermanentSongFromSiteUrlWithQuery(request):
     except Exception as e:
         return Response(create_response(False, f"Could not fetch 320kbps song from site_url: {site_url}"), status=status.HTTP_404_NOT_FOUND)
 
-
 @api_view(["POST"])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
@@ -569,17 +568,21 @@ class UserSinglePlaylistsView(APIView):
         return Response(create_response(False, serializer.errors), status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk=None):
-        user = request.user
-        if not pk:
-            return Response(create_response(False, "Playlist ID is required in URL"), status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = request.user
+            if not pk:
+                return Response(create_response(False, "Playlist ID is required in URL"), status=status.HTTP_400_BAD_REQUEST)
 
-        playlist = get_object_or_404(Playlists, pk=pk)
+            playlist = Playlists.objects.get(pk=pk)
 
-        if playlist.admin != user:
-            return Response(create_response(False, "Only admin can delete playlist"), status=status.HTTP_403_FORBIDDEN)
-
-        playlist.delete()
-        return Response(create_response(True, f"{playlist.name} deleted"), status=status.HTTP_204_NO_CONTENT)
+            if playlist.admin != user:
+                return Response(create_response(False, "Only admin can delete playlist"), status=status.HTTP_403_FORBIDDEN)
+            playlist.delete()
+            return Response(create_response(True, f"{pk} deleted"), status=status.HTTP_200_OK)
+        except Playlists.DoesNotExist:
+            return Response(create_response(False, f"Playlist with ID {pk} does not exist"), status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response(create_response(False, f"Error deleting playlist: {str(e)}"), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class UserPlaylistsView(APIView):
     permission_classes = [IsAuthenticated]
