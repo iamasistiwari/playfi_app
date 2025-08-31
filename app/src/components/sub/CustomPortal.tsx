@@ -14,6 +14,7 @@ interface WithTrigger {
   handleClose?: never;
   onSubmit?: () => Promise<void>;
   actionTitle?: string;
+  actionClassName?: string;
   autoClose?: boolean;
 }
 
@@ -21,13 +22,14 @@ interface Controlled {
   triggerTitle?: undefined;
   triggerClassName?: undefined;
   triggerVariant?: undefined;
-  
+
   dialogTitle: string;
   dialogContent: React.ReactNode;
   visible: boolean;
   handleClose: () => void;
   onSubmit?: () => Promise<void>;
   actionTitle?: string;
+  actionClassName?: string;
   autoClose?: boolean;
 }
 
@@ -44,6 +46,7 @@ const CustomPortal = ({
   onSubmit,
   actionTitle = "Done",
   autoClose = true,
+  actionClassName,
 }: Props) => {
   const [portalVisible, setPortalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -85,7 +88,8 @@ const CustomPortal = ({
                 }
               }}
               title={actionTitle}
-              className="p-0"
+              className={cn("p-0 ")}
+              titleClassName={cn("text-white", actionClassName)}
               variant={"link"}
             />
           </Dialog.Actions>

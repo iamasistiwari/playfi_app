@@ -142,6 +142,10 @@ const playlistSlice = createSlice({
                 ? { ...item, songs: action.payload.songs }
                 : item
             );
+            // update current playlist
+            if (state.currentPlaylist?.id === action.payload.id) {
+              state.currentPlaylist = action.payload;
+            }
           }
           state.loading = false;
         }

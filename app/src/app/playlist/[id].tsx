@@ -11,6 +11,7 @@ import { AppDispatch, RootState } from "@/redux/store";
 import { setCurrentPlaylist } from "@/redux/playlist-slice";
 import { setSongQueue } from "@/redux/song-player";
 import { playNextAsync } from "@/redux/thunks/songThunk";
+import PlaylistMenu from "@/components/sub/PlaylistMenu";
 
 const FullPlaylistView = () => {
   const { currentPlaylist: playlist, loading } = useSelector(
@@ -81,13 +82,7 @@ const FullPlaylistView = () => {
             title=""
             icon={<Ionicons name="search" size={24} color="white" />}
           />
-          <CustomButton
-            loading={false}
-            variant={"ghost"}
-            className="p-0"
-            title=""
-            icon={<Ionicons name="options-outline" size={24} color="white" />}
-          />
+          <PlaylistMenu playlistId={id as string} />
         </View>
       </View>
 

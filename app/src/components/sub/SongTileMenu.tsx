@@ -12,8 +12,6 @@ import CustomPortal from "./CustomPortal";
 import CreatePlaylist from "./CreatePlaylist";
 import {
   fetchSinglePlaylistAsync,
-  globalPlaylistAsync,
-  userPlaylistAsync,
 } from "@/redux/thunks/playlistThunk";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { addOrRemoveSongFromPlaylist } from "@/actions/playlist";
@@ -23,7 +21,7 @@ interface Props {
   video: Video;
 }
 
-const CustomMenuComponent: React.FC<Props> = ({ video }: Props) => {
+const SongTileMenuComponent: React.FC<Props> = ({ video }: Props) => {
 
   const [isSongPresent, setIsSongPresent] = useState<Map<string, boolean>>();
 
@@ -68,7 +66,7 @@ const CustomMenuComponent: React.FC<Props> = ({ video }: Props) => {
         onDismiss={() => setmenuVisible(false)}
         anchor={
           <Pressable
-            onPress={(e) => {
+            onPress={() => {
               setmenuVisible(true);
             }}
           >
@@ -128,9 +126,10 @@ const CustomMenuComponent: React.FC<Props> = ({ video }: Props) => {
           <View>
             <ScrollView
               showsVerticalScrollIndicator={true}
-              style={{ height: 150 }}
+              style={{ height: 150, gap:4 }}
               indicatorStyle="white"
               persistentScrollbar={true}
+
             >
               {userPlaylists.map((playlist, index) => (
                 <CustomButton
@@ -153,7 +152,7 @@ const CustomMenuComponent: React.FC<Props> = ({ video }: Props) => {
                       />
                     )
                   }
-                  className="p-0 justify-start"
+                  className="justify-start border-b border-neutral-700 bg-neutral-800 my-1 p-2"
                   onPress={async () => {
                     setSongActionLoading(
                       songActionLoading.map((item, i) =>
@@ -166,8 +165,6 @@ const CustomMenuComponent: React.FC<Props> = ({ video }: Props) => {
                       playlist.id,
                       video
                     );
-                    // dispatch(userPlaylistAsync());
-                    // dispatch(globalPlaylistAsync());
                     dispatch(
                       fetchSinglePlaylistAsync({
                         playlistId: playlist.id as string,
@@ -192,8 +189,8 @@ const CustomMenuComponent: React.FC<Props> = ({ video }: Props) => {
   );
 };
 
-const CustomMenu = React.memo(
-  CustomMenuComponent,
+const SongTileMenu = React.memo(
+  SongTileMenuComponent,
   (prevProps, nextProps) => prevProps.video.id === nextProps.video.id
 );
-export default CustomMenu;
+export default SongTileMenu;

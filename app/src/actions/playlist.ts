@@ -1,4 +1,4 @@
-import { get, post } from "@/lib/api";
+import { del, get, post } from "@/lib/api";
 import { Playlist, Video } from "@/types/song";
 
 export const fetchUserPlaylists = async (): Promise<Playlist[]> => {
@@ -8,6 +8,26 @@ export const fetchUserPlaylists = async (): Promise<Playlist[]> => {
     return searchResult;
   } catch (error) {
     return [];
+  }
+};
+
+
+export const deletePlaylist = async (playlistId: string): Promise<{
+  status: boolean;
+  message: string;
+}> => {
+  try {
+    const response = await del(`/api/v1/playlist/${playlistId}`);
+    const isDeleted = response?.responseStatus?.status || false;
+    return {
+      status: isDeleted,
+      message: response?.responseStatus?.message || "",
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message: "Error deleting playlist",
+    };
   }
 };
 

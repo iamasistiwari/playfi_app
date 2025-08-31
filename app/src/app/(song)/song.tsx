@@ -1,23 +1,23 @@
-import { View, Text, Image } from "react-native";
-import React, { useEffect, useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from "@/redux/store";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  runOnJS,
-} from "react-native-reanimated";
-import { usePlayer } from "@/hooks/usePlayer";
 import { CustomButton } from "@/components/sub/CustomButton";
-import { Ionicons } from "@expo/vector-icons";
 import Loader from "@/components/sub/Loader";
-import SongSlider from "@/components/sub/SongSlider";
-import CustomMenu from "@/components/sub/Menu";
-import { playNextAsync } from "@/redux/thunks/songThunk";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { useRouter } from "expo-router";
 import SongImage from "@/components/sub/SongImage";
+import SongSlider from "@/components/sub/SongSlider";
+import CustomMenu from "@/components/sub/SongTileMenu";
+import { usePlayer } from "@/hooks/usePlayer";
+import { AppDispatch, RootState } from "@/redux/store";
+import { playNextAsync } from "@/redux/thunks/songThunk";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React, { useEffect } from "react";
+import { Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import { useDispatch, useSelector } from "react-redux";
 
 const Song = () => {
   const { currentSong, loading, queue } = useSelector(

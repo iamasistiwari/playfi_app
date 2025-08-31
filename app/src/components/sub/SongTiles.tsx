@@ -1,17 +1,16 @@
+import { cn } from "@/lib/utils";
+import { AppDispatch, RootState } from "@/redux/store";
+import { setSongAsync } from "@/redux/thunks/songThunk";
+import { Video } from "@/types/song";
+import React, { useEffect } from "react";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { View, Text, Image, StyleSheet, Pressable } from "react-native";
-import React, { useEffect } from "react";
-import { Video } from "@/types/song";
 import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from "@/redux/store";
-import { setSongAsync } from "@/redux/thunks/songThunk";
-import CustomMenu from "./Menu";
-import { cn } from "@/lib/utils";
-import SongImage from "./SongImage";
+import SongTileMenu from "./SongTileMenu";
 
 const SongTile = ({ data }: { data: Video }) => {
   const { currentSong } = useSelector((state: RootState) => state.songPlayer);
@@ -59,7 +58,7 @@ const SongTile = ({ data }: { data: Video }) => {
           </Text>
           <Text style={styles.channel}>{data.channel.name}</Text>
         </View>
-        <CustomMenu video={data} />
+        <SongTileMenu video={data} />
       </Pressable>
     </Animated.View>
   );
