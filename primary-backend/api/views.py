@@ -282,11 +282,26 @@ def addPermanentSongFromSiteUrl(request):
     key = f"permenant_url:{video_id}"
 
     video_image_url = get_high_image_url(video_id)
+    video_details= getVideoDetails(video_id)
+    if video_details:  # Make sure it's not None
+        song_title = (
+            video_details
+            .get("responseStatus", {})
+            .get("message", {})
+            .get("videoDetails", {})
+            .get("title", "")
+        )
+    else:
+        song_title = ""
+        print("⚠️ getVideoDetails returned None")
 
     isAlready = redis.get(key)
     if isAlready and not update:
-        return Response(create_response(False, f"Already present!! try update to be true to update the link", {
+        return Response(create_response(False, f"Already present!!", {
+            "query":"",
+            "site_url":site_url,
             "song_url":isAlready,
+            "song_title":song_title,
             "video_id":video_id,
             "image_url":video_image_url
         }), status=status.HTTP_208_ALREADY_REPORTED)
@@ -294,8 +309,11 @@ def addPermanentSongFromSiteUrl(request):
     if not song_url:
         return Response(create_response(False, f"Could not fetch 320kbps song from site_url: {site_url}"), status=status.HTTP_404_NOT_FOUND)
     redis.set(key, song_url) 
-    return Response(create_response(False, f"Done", {
+    return Response(create_response(True, f"Ok", {
+        "query":"",
+        "site_url":site_url,
         "song_url":song_url,
+        "song_title":song_title,
         "video_id":video_id,
         "image_url":video_image_url
     }), status=status.HTTP_200_OK)
@@ -332,7 +350,10 @@ def addPermanentSongFromSiteUrlWithQuery(request):
         isAlready = redis.get(key)
         if isAlready and not update:
             return Response(create_response(False, f"Already present!! try update to be true to update the link", {
+                "query":query,
+                "site_url":site_url,
                 "song_url":isAlready,
+                "song_title":song_title,
                 "video_id":video_id,
                 "image_url":video_image_url
             }), status=status.HTTP_208_ALREADY_REPORTED)
@@ -347,20 +368,20 @@ def addPermanentSongFromSiteUrlWithQuery(request):
             return Response(create_response(False, f"Song info mismatch", {
                 "query":query,
                 "site_url":site_url,
-                "song_url":song_url,
+                "song_url":isAlready,
                 "song_title":song_title,
                 "video_id":video_id,
                 "image_url":video_image_url
             }), status=status.HTTP_404_NOT_FOUND)
             
         redis.set(key, song_url) 
-        return Response(create_response(True, f"Done", {
-            "query":query,
+        return Response(create_response(True, f"Ok", {
+             "query":query,
             "site_url":site_url,
             "song_url":song_url,
             "song_title":song_title,
             "video_id":video_id,
-            "image_url":video_image_url,
+            "image_url":video_image_url
         }), status=status.HTTP_200_OK)
     except Exception as e:
         return Response(create_response(False, f"Could not fetch 320kbps song from site_url: {site_url}"), status=status.HTTP_404_NOT_FOUND)
@@ -386,26 +407,50 @@ def addPermanentSongUrl(request):
             create_response(False, "Youtube video id is not valid"),
             status=status.HTTP_404_NOT_FOUND,
         )
+    try:
+        redis = get_redis_client()
 
-    redis = get_redis_client()
+        video_image_url = get_high_image_url(video_id)
+        video_details= getVideoDetails(video_id)
+        if video_details:  # Make sure it's not None
+            song_title = (
+                video_details
+                .get("responseStatus", {})
+                .get("message", {})
+                .get("videoDetails", {})
+                .get("title", "")
+            )
+        else:
+            song_title = ""
+            print("⚠️ getVideoDetails returned None")
 
-    video_image_url = get_high_image_url(video_id)
 
-    key = f"permenant_url:{video_id}"
-    isAlready = redis.get(key)
-    if isAlready and not update:
-        return Response(create_response(False, f"Already present!! try update to be true to update the link", {
-            "song_url":isAlready,
+        key = f"permenant_url:{video_id}"
+        isAlready = redis.get(key)
+        if isAlready and not update:
+            return Response(create_response(False, f"Already present!!", {
+                "query":"",
+                "site_url":"",
+                "song_url":isAlready,
+                "song_title":song_title,
+                "video_id":video_id,
+                "image_url":video_image_url
+            }), status=status.HTTP_208_ALREADY_REPORTED)
+
+        redis.set(key, song_url) 
+        return Response(create_response(True, f"Ok", {
+            "query":"",
+            "site_url":"",
+            "song_url":song_url,
+            "song_title":song_title,
             "video_id":video_id,
             "image_url":video_image_url
-        }), status=status.HTTP_208_ALREADY_REPORTED)
+        }), status=status.HTTP_200_OK)
+    except Exception as e:
+        print("here is exception", e)
+        return Response(create_response(False, f"Could not fetch video details"), status=status.HTTP_404_NOT_FOUND)
 
-    redis.set(key, song_url) 
-    return Response(create_response(False, f"Done", {
-        "song_url":song_url,
-        "video_id":video_id,
-        "image_url":video_image_url
-    }), status=status.HTTP_200_OK)
+    
 
 
 @api_view(["GET"])
