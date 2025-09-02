@@ -41,14 +41,15 @@ def fetch_320kbps(url: str) -> str:
 
     soup = BeautifulSoup(res.text, "html.parser")
 
-    # Look for anchor tags that mention "320 Kbps"
-    link = None
     for a in soup.select("a[href]"):
-        if "320" in a.text:
-            link = a["href"]
-            break
+        href = a["href"]
+        full_text = a.get_text(strip=True).lower()
 
-    return link
+        # Must mention 320 and end with .mp3
+        if (("320" in full_text or "/320/" in href) and href.endswith(".mp3")):
+            return href
+
+    return None
 
 def is_valid_url(url: str) -> bool:
     try:

@@ -361,6 +361,7 @@ def addPermanentSongFromSiteUrlWithQuery(request):
         return Response(create_response(False, f"Could not fetch video_id from query: {query}"), status=status.HTTP_404_NOT_FOUND)
     try:
         song_url = fetch_320kbps(site_url)
+        print("song url", song_url)
         if not song_url:
             return Response(create_response(False, f"Could not fetch 320kbps song from site_url: {site_url}"), status=status.HTTP_404_NOT_FOUND)
 
