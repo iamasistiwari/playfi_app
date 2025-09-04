@@ -6,6 +6,7 @@ urlpatterns = [
     path('playlists/', views.UserPlaylistsView.as_view()),                 
     path('playlists/global/', views.globalPlaylists),  
     path('playlist/global', views.makePlaylistGlobal),  
+    path('playlist/private', views.makePlaylistPrivate),  
     path('playlist/<uuid:pk>', views.UserSinglePlaylistsView.as_view()), 
     path("add/song", views.addSongsToPlaylist, name="addSongsToPlaylist"),
     path("add/user", views.addUserToPlaylist, name="addUserToPlaylist"),

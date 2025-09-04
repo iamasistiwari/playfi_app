@@ -155,6 +155,38 @@ def makePlaylistGlobal(request):
     except Playlists.DoesNotExist:
         return Response(create_response(False, "playlist_id not found"), status=status.HTTP_404_NOT_FOUND)
 
+@api_view(["POST"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def makePlaylistPrivate(request):
+    playlist_id = request.data.get("playlist_id")
+
+    if not playlist_id:
+        return Response(create_response(False, "playlist_id is required"), status=status.HTTP_400_BAD_REQUEST)
+    
+    # Validate UUID
+    try:
+        _ = uuid.UUID(str(playlist_id))
+    except (ValueError, TypeError):
+        return Response(
+            create_response(False, "Invalid playlist_id format"),
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    try:
+        playlist = Playlists.objects.get(id=playlist_id)
+        if not playlist.isGlobal:
+            return Response(create_response(False, "Playlist is already private"), status=status.HTTP_400_BAD_REQUEST)
+        if playlist.admin != request.user:
+            return Response(create_response(False, "Only admins can make playlist private"), status=status.HTTP_403_FORBIDDEN)
+        playlist.isGlobal = False
+        playlist.save()
+        return Response(create_response(True, "Playlist made private successfully", {
+            "playlist_id": playlist.id,
+            "isGlobal": playlist.isGlobal
+        }), status=status.HTTP_200_OK)
+    except Playlists.DoesNotExist:
+        return Response(create_response(False, "playlist_id not found"), status=status.HTTP_404_NOT_FOUND)
+
 @api_view(["GET"])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
