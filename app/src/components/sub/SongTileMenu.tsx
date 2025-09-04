@@ -1,4 +1,4 @@
-import { View, Pressable, ScrollView } from "react-native";
+import { View, Pressable, ScrollView, Text } from "react-native";
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
@@ -80,8 +80,10 @@ const SongTileMenuComponent: React.FC<Props> = ({ video }: Props) => {
         }
       >
         <Menu.Item
-          onPress={() => {
+          onPress={async () => {
             dispatch(handleLikeSong(video));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            setmenuVisible(false);
           }}
           leadingIcon={() =>
             isLiked ? (
@@ -93,12 +95,14 @@ const SongTileMenuComponent: React.FC<Props> = ({ video }: Props) => {
           title={isLiked ? "Remove" : "Like"}
         />
         <Menu.Item
-          onPress={() => {
+          onPress={async () => {
             if (songInQueue) {
               dispatch(removeSongFromQueue(video.id));
             } else {
               dispatch(addSongToQueue(video));
             }
+            await new Promise((resolve) => setTimeout(resolve, 300));
+            setmenuVisible(false);
           }}
           leadingIcon={() => (
             <MaterialIcons name="queue-music" size={24} color="#16a34a" />
@@ -126,60 +130,65 @@ const SongTileMenuComponent: React.FC<Props> = ({ video }: Props) => {
           <View>
             <ScrollView
               showsVerticalScrollIndicator={true}
-              style={{ height: 150, gap:4 }}
+              style={{ minHeight:50, maxHeight: 150, gap:4 }}
               indicatorStyle="white"
               persistentScrollbar={true}
-
             >
-              {userPlaylists.map((playlist, index) => (
-                <CustomButton
-                  title={playlist.playlistName}
-                  key={playlist.id}
-                  variant={"ghost"}
-                  loading={songActionLoading[index]}
-                  icon={
-                    isSongPresent?.get(playlist.id) ? (
-                      <FontAwesome
-                        name="check-circle"
-                        size={24}
-                        color="green"
-                      />
-                    ) : (
-                      <Ionicons
-                        name="add-circle-outline"
-                        size={24}
-                        color="white"
-                      />
-                    )
-                  }
-                  className="justify-start border-b border-neutral-700 bg-neutral-800 my-1 p-2"
-                  onPress={async () => {
-                    setSongActionLoading(
-                      songActionLoading.map((item, i) =>
-                        i === index ? true : item
+              {userPlaylists.length === 0 ? (<View>
+                <Text className="text-center text-neutral-500 my-4">
+                  No Playlists Found. Create one!
+                </Text>
+              </View>): (
+                userPlaylists.map((playlist, index) => (
+                  <CustomButton
+                    title={playlist.playlistName}
+                    key={playlist.id}
+                    variant={"ghost"}
+                    loading={songActionLoading[index]}
+                    icon={
+                      isSongPresent?.get(playlist.id) ? (
+                        <FontAwesome
+                          name="check-circle"
+                          size={24}
+                          color="green"
+                        />
+                      ) : (
+                        <Ionicons
+                          name="add-circle-outline"
+                          size={24}
+                          color="white"
+                        />
                       )
-                    );
-                    const isPresent = isSongPresent?.get(playlist.id);
-                    await addOrRemoveSongFromPlaylist(
-                      isPresent,
-                      playlist.id,
-                      video
-                    );
-                    dispatch(
-                      fetchSinglePlaylistAsync({
-                        playlistId: playlist.id as string,
-                        fresh: true,
-                      })
-                    );
-                    await new Promise((resolve) => setTimeout(resolve, 2000))
-                    setSongActionLoading(
-                      songActionLoading.map((item, i) =>
-                        i === index ? false : item
-                      )
-                    );
-                  }}
-                />
-              ))}
+                    }
+                    className="justify-start border-b border-neutral-900 bg-neutral-800 my-1 p-2"
+                    onPress={async () => {
+                      setSongActionLoading(
+                        songActionLoading.map((item, i) =>
+                          i === index ? true : item
+                        )
+                      );
+                      const isPresent = isSongPresent?.get(playlist.id);
+                      await addOrRemoveSongFromPlaylist(
+                        isPresent,
+                        playlist.id,
+                        video
+                      );
+                      dispatch(
+                        fetchSinglePlaylistAsync({
+                          playlistId: playlist.id as string,
+                          fresh: true,
+                        })
+                      );
+                      await new Promise((resolve) => setTimeout(resolve, 2000))
+                      setSongActionLoading(
+                        songActionLoading.map((item, i) =>
+                          i === index ? false : item
+                        )
+                      );
+                    }}
+                  />
+                ))
+              )}
             </ScrollView>
             <CreatePlaylist />
           </View>

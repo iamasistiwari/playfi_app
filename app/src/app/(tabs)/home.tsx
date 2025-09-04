@@ -3,6 +3,7 @@ import React from "react";
 import Navbar from "@/components/main/Navbar";
 import DummySearchBar from "@/components/sub/DummySearchBar";
 import Playlists from "@/components/main/Playlists";
+import SongPlayer from "@/components/main/SongPlayer";
 
 const Home = () => {
   return (
@@ -10,6 +11,7 @@ const Home = () => {
       <Navbar />
       <DummySearchBar />
       <Playlists />
+      <SongPlayer />
     </View>
   );
 };

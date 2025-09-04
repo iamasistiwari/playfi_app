@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import re
 import os
 from dotenv import load_dotenv
+import csv
 
 load_dotenv()
 
@@ -61,7 +62,6 @@ def get_artist_songs(url: str) -> list[dict]:
         return []
 
 def get_single_tracks(url: str) -> list[dict]:
-    print("url is", url)
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                       "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -101,7 +101,7 @@ def get_single_tracks(url: str) -> list[dict]:
         print("Error:", e)
         return []
 
-def post_track(track, artist_name, success_file="added_tracks.txt"):
+def post_track(track, artist_name, success_file="added_tracks.csv"):
     payload = {
         "query": f"{track['name']} {artist_name}",
         "site_url": track["url"],
@@ -109,27 +109,40 @@ def post_track(track, artist_name, success_file="added_tracks.txt"):
     }
     print("payload", payload)
     try:
-        response = requests.post(PLAYFI_API_URL, headers=HEADERS, json=payload, timeout=10)
+        response = requests.post(PLAYFI_API_URL, headers=HEADERS, json=payload, timeout=30)
         resp_json = response.json()
         if response.status_code == 200:
-            #  Ensure file exists and append track name
             os.makedirs(os.path.dirname(success_file), exist_ok=True) if os.path.dirname(success_file) else None
             video_id = resp_json["responseData"]["video_id"]
+            music_url = resp_json["responseData"]["song_url"]
+            image_url = resp_json["responseData"]["image_url"]
+            song_title = resp_json["responseData"]["song_title"]
 
-            # Write name:video_id if not already present
-            line_to_write = f"{track['name']}:{video_id}\n"
-            with open(success_file, "a+", encoding="utf-8") as f:
-                f.seek(0)
-                existing = f.read()
-                if line_to_write.strip() not in existing:
-                    f.write(line_to_write)
+            # Prepare row data
+            row = [video_id, song_title ,music_url, image_url]
+
+            # Write to CSV file (append if not exists, ensure no duplicates)
+            file_exists = os.path.isfile(success_file)
+            rows = []
+            if file_exists:
+                with open(success_file, "r", encoding="utf-8") as f:
+                    reader = csv.reader(f)
+                    rows = list(reader)
+
+            # Check duplicate by video_id
+            if not any(r[0] == video_id for r in rows[1:] if rows):
+                with open(success_file, "a", newline="", encoding="utf-8") as f:
+                    writer = csv.writer(f)
+                    if not file_exists:  # Write header if file doesn't exist
+                        writer.writerow(["videoId", "song name" ,"musicUrl", "imageUrl"])
+                    writer.writerow(row)
 
             return f"✅ Added: {track['name']} {response.text}"
         else:
             return f"⚠️ Failed ({response.status_code}) for {track['name']} → {response.text}"
     except requests.RequestException as e:
         return f"❌ Error while adding {track['name']}: {e}"
-    
+
 def fetch_artist_tracks(artist_url: str, artist_name: str, max_workers: int = 10):
     songs = get_artist_songs(artist_url)
     all_tracks = []
@@ -154,8 +167,7 @@ def fetch_artist_tracks(artist_url: str, artist_name: str, max_workers: int = 10
 # for t in tracks:
 #     print(t)
 
-fetch_artist_tracks("https://djpunjab.is/artist/guru-randhawa", "guru randhawa")
-
+# fetch_artist_tracks("https://djpunjab.is/artist/guru-randhawa", "guru randhawa")
 
 # karan aujla 
 # shubh

@@ -1,3 +1,4 @@
+import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 
 export default function useFetch<T>(
@@ -14,8 +15,12 @@ export default function useFetch<T>(
       setError(null);
       const result = await fetchFunction();
       setData(result);
-    } catch (error) {
-      setError("Something went wrong");
+    } catch (e) {
+      if (e instanceof AxiosError) {
+        setError(JSON.stringify(e.response?.data || "Something went wrong"));
+      } else {
+        setError("Something went wrong");
+      }
     } finally {
       setLoading(false);
     }

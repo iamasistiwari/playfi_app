@@ -11,8 +11,26 @@ export const fetchUserPlaylists = async (): Promise<Playlist[]> => {
   }
 };
 
+export const changeVisiblity = async (
+  playlistId: string,
+  isGlobal: boolean
+): Promise<boolean> => {
+  try {
+    const urlToHit = isGlobal
+      ? "/api/v1/playlist/global"
+      : "/api/v1/playlist/private";
+    const res = await post(urlToHit, {
+      playlist_id: playlistId,
+    });
+    return res?.responseStatus?.status || false;
+  } catch (error) {
+    return false;
+  }
+};
 
-export const deletePlaylist = async (playlistId: string): Promise<{
+export const deletePlaylist = async (
+  playlistId: string
+): Promise<{
   status: boolean;
   message: string;
 }> => {

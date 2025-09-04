@@ -38,7 +38,7 @@ const Playlists = () => {
         // },
         {
           id: 3,
-          playlistName: "Global Playlists",
+          playlistName: "Public Playlists",
           playlists: globalPlaylists,
         },
       ].map((item) => (

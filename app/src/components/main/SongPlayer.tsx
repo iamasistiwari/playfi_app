@@ -12,6 +12,7 @@ import { usePlayer } from "@/hooks/usePlayer";
 import { formatTime } from "@/lib/customfn";
 import { playNextAsync } from "@/redux/thunks/songThunk";
 import SongImage from "../sub/SongImage";
+import { cn } from "@/lib/utils";
 
 const SongPlayer = () => {
   const pathname = usePathname();
@@ -34,7 +35,7 @@ const SongPlayer = () => {
           router.push(`/song`);
         }
       }}
-      className="backdrop-blur-3xl"
+      className={"backdrop-blur-3xl absolute bottom-10 min-w-[100vw]"}
     >
       <LinearGradient
         colors={["#171717", "#121212", "#0a0a0a"]}

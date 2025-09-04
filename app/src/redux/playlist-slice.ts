@@ -93,6 +93,9 @@ const playlistSlice = createSlice({
         (state, action: PayloadAction<Playlist[]>) => {
           state.userPlaylists = action.payload;
           state.loading = false;
+          action.payload.forEach((playlist) => {
+            state.playlist.set(playlist.id, playlist);
+          });
         }
       )
       .addCase(globalPlaylistAsync.pending, (state) => {

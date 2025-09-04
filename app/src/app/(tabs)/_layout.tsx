@@ -1,7 +1,11 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 
 export default function TabsLayout() {
+  const { isAdmin } = useSelector((state: RootState) => state.user);
+
   return (
     <Tabs
       screenOptions={{
@@ -45,6 +49,18 @@ export default function TabsLayout() {
           ),
         }}
       />
+      {isAdmin && (
+        <Tabs.Screen
+          name="dev"
+          options={{
+            title: "Dev",
+            headerShown: false,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="code" size={size} color={color} />
+            ),
+          }}
+        />
+      )}
     </Tabs>
   );
 }

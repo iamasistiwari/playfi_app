@@ -6,8 +6,8 @@ const PhotoGrid = ({ collageImages }: { collageImages: string[] }) => {
     return (
       <View
         style={{
-          width: 130,
-          height: 130,
+          width: 120,
+          height: 120,
           borderRadius: 8,
           overflow: "hidden",
           backgroundColor: "transparent",

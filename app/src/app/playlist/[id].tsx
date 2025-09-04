@@ -12,6 +12,7 @@ import { setCurrentPlaylist } from "@/redux/playlist-slice";
 import { setSongQueue } from "@/redux/song-player";
 import { playNextAsync } from "@/redux/thunks/songThunk";
 import PlaylistMenu from "@/components/sub/PlaylistMenu";
+import SongPlayer from "@/components/main/SongPlayer";
 
 const FullPlaylistView = () => {
   const { currentPlaylist: playlist, loading } = useSelector(
@@ -58,7 +59,7 @@ const FullPlaylistView = () => {
   }
 
   return (
-    <View className="px-4 pt-1 bg-primary">
+    <View className="px-4 pt-1 bg-primary min-h-[100vh]">
       {/* navbar part */}
       <View className="h-16 flex-row items-center justify-between">
         <CustomButton
@@ -144,6 +145,8 @@ const FullPlaylistView = () => {
           showsVerticalScrollIndicator={false}
         />
       </View>
+
+      <SongPlayer />
     </View>
   );
 };

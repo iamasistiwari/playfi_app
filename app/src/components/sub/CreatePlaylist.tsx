@@ -23,14 +23,18 @@ const CreatePlaylist = () => {
     if (status) {
       dispatch(userPlaylistAsync());
     }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    setPlaylistName("");
+    setmessage("");
+    setValid(true);
   };
 
   return (
     <CustomPortal
       triggerTitle="Create new playlist ?"
       dialogTitle="Create new playlist"
-      triggerVariant={"link"}
-        triggerClassName=" justify-center items-center"
+      triggerVariant={"default"}
+      triggerClassName="justify-center items-center p-2 bg-secondary rounded-2xl"
       dialogContent={
         <View>
           <CustomInput
@@ -54,7 +58,7 @@ const CreatePlaylist = () => {
           )}
         </View>
       }
-      autoClose={false}
+      autoClose={true}
       onSubmit={handleCreatePlaylist}
     />
   );

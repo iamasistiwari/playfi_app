@@ -11,6 +11,7 @@ import { Video } from "@/types/song";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/redux/store";
 import { addToRecentSearch } from "@/redux/song-player";
+import SongPlayer from "./SongPlayer";
 
 const SongSearchBar = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,7 +28,7 @@ const SongSearchBar = () => {
         inputRef.current?.blur();
         dispatch(addToRecentSearch(query));
         refetch();
-      }else{
+      } else {
         resetData();
       }
     }, 700);
@@ -42,33 +43,36 @@ const SongSearchBar = () => {
   }, []);
 
   return (
-    <View className="px-4">
-      <CustomInput
-        inputRef={inputRef}
-        placeholder="Search for songs"
-        value={searchQuery}
-        onChangeText={(text) => {
-          setSearchQuery(text);
-        }}
-        icon={<Ionicons name="search-outline" size={20} color="#16a34a" />}
-      />
-      {loading && <SongLoadingSkeleton />}
-      {searchQuery.length > 0 && !loading && data?.length < 1 && (
-        <Text className="text-center text-neutral-500 mt-4 font-semibold">
-          No results found
-        </Text>
-      )}
-      {!loading && data?.length > 0 && (
-        <View className="gap-6 mt-8">
-          {data?.map((item) => (
-            <SongTile data={item} key={`${item?.id}`} />
-          ))}
-        </View>
-      )}
-      {/* Song History List */}
-      {!data?.length && !loading && searchQuery.length < 1 && (
-        <RecentSongHistroy onPress={(text) => setSearchQuery(text)} />
-      )}
+    <View className="flex flex-col flex-1 min-h-[100vh] justify-between">
+      <View className="px-4">
+        <CustomInput
+          inputRef={inputRef}
+          placeholder="Search for songs"
+          value={searchQuery}
+          onChangeText={(text) => {
+            setSearchQuery(text);
+          }}
+          icon={<Ionicons name="search-outline" size={20} color="#16a34a" />}
+        />
+        {loading && <SongLoadingSkeleton />}
+        {searchQuery.length > 0 && !loading && data?.length < 1 && (
+          <Text className="text-center text-neutral-500 mt-4 font-semibold">
+            No results found
+          </Text>
+        )}
+        {!loading && data?.length > 0 && (
+          <View className="gap-6 mt-8">
+            {data?.map((item) => (
+              <SongTile data={item} key={`${item?.id}`} />
+            ))}
+          </View>
+        )}
+        {/* Song History List */}
+        {!data?.length && !loading && searchQuery.length < 1 && (
+          <RecentSongHistroy onPress={(text) => setSearchQuery(text)} />
+        )}
+      </View>
+      <SongPlayer />
     </View>
   );
 };

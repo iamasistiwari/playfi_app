@@ -1,4 +1,4 @@
-import { get, post } from "@/lib/api";
+import { get } from "@/lib/api";
 import { Video } from "@/types/song";
 
 export const searchSongs = async (query: string): Promise<Video[]> => {

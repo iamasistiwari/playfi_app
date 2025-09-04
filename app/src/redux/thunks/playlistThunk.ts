@@ -25,8 +25,15 @@ export const globalPlaylistAsync = createAsyncThunk(
 export const fetchAllPlaylistAsync = createAsyncThunk(
   "playlist/fetchAllPlaylistAsync",
   async () => {
-    const globalPlaylists = await fetchGlobalPlaylists();
+    let globalPlaylists = await fetchGlobalPlaylists();
     const userPlaylists = await fetchUserPlaylists();
+
+    globalPlaylists = globalPlaylists.filter((glbPlaylist) => {
+      return !userPlaylists.some(
+        (item) => String(item.id) === String(glbPlaylist.id)
+      );
+    });
+    
 
     const map: Map<string, Playlist> = new Map();
     const playlists = [...globalPlaylists, ...userPlaylists];
