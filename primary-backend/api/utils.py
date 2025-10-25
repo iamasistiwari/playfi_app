@@ -1,5 +1,5 @@
 from .types import YoutubeVideoType, ViewCount, Thumbnail, Channel, Accessibility
-from typing import List
+from typing import Any, List
 # from youtubesearchpython import VideosSearch
 from ytmusicapi import YTMusic
 import yt_dlp
@@ -65,18 +65,11 @@ def getYTMusic() -> YTMusic:
         ytmusic = YTMusic()
     return ytmusic
 
-def format_sentence(sentence: str, channelName: str) -> str:
+def format_sentence(sentence: str) -> str:
     removable_words = [
         "official", "audio", "lyrics", "music", "video", "clip", "latest", 
         "song", "songs", "punjabi", "hindi", "new", "full", "hd", "ft", "lyric", "lyrics"
     ]
-    
-    # Add channel name words
-    if channelName:
-        channel_words = [word.strip() for word in channelName.split() if word.strip()]
-        removable_words.extend(channel_words)
-    
-    # Add common year patterns (optional)
     # removable_words.extend([str(year) for year in range(2020, 2025)])
     
     if not sentence:
@@ -119,6 +112,7 @@ def getExpiryTimeout(music_url: str) -> int:
 def youtubeSearch(query: str) -> List[YoutubeVideoType]:
     results = getYTMusic().search(query, filter="songs")
     validated_videos: List[YoutubeVideoType] = []
+    unique_videos = []
 
     for video in results[:6]:  
         try:
@@ -145,11 +139,18 @@ def youtubeSearch(query: str) -> List[YoutubeVideoType]:
             }
 
             validated = YoutubeVideoType.model_validate(mapped_video)
-            validated_videos.append(validated.model_dump())  # now this works
+            validated_videos.append(validated.model_dump()) 
+
         except Exception as e:
             continue
-
-    return validated_videos
+    # Deduplicate by video ID
+    seen_ids = set[Any]()
+    for vid in validated_videos:
+        if vid["id"] not in seen_ids:
+            unique_videos.append(vid)
+            seen_ids.add(vid["id"])
+            
+    return unique_videos
 
 def getVideoDetails(video_id: str) -> dict:
     try:
