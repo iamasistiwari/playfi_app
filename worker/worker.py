@@ -33,9 +33,12 @@ def worker():
             if queue_name == "song_tasks":
                 musicUrl = utils.getYoutubeMusicUrl(video_id)
                 musicUrl = utils.getYoutubeMusicUrl(video_id)
-                # print(f"Fetched URL: {musicUrl}")
+                print(f"Fetched music URL: {musicUrl} ")
+                if not musicUrl.endswith("="):
+                    r.lpush("failed_song_tasks", video_id)
+                    return 
 
-                if musicUrl and musicUrl.startswith("http") and len(musicUrl) > 10 and musicUrl.endswith("="):
+                if musicUrl and musicUrl.startswith("http") and len(musicUrl) > 10:
                     try:
                         # Send a lightweight HEAD request first
                         resp = requests.head(musicUrl, timeout=5)
