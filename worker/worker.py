@@ -35,6 +35,7 @@ def worker():
                 musicUrl = utils.getYoutubeMusicUrl(video_id)
                 print(f"Fetched music URL: {musicUrl} ")
                 if not musicUrl.endswith("="):
+                    print(f"Failed to fetch valid music URL for {video_id}")
                     r.lpush("failed_song_tasks", video_id)
                     return 
 
