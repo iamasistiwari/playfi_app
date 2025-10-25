@@ -1,12 +1,17 @@
 from typing import List, Optional
 from ytmusicapi import YTMusic
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, unquote
 import yt_dlp
 import time
 import subprocess
 import sys
 import time
+import requests
+from bs4 import BeautifulSoup
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 
 ytmusic: Optional[YTMusic] = None
 def getYTMusic() -> YTMusic:
@@ -39,7 +44,7 @@ def getYoutubeMusicUrl(videoId: str, max_attempts: int = 10) -> Optional[str]:
                 except subprocess.CalledProcessError as e:
                     print(f"⚠️ Failed to upgrade yt-dlp: {e}")
     
-            result = _extractAudioUrl(videoId, attempt)
+            result = _extractAudioUrl(videoId)
             if result:
                 print(f"✅ SUCCESS on attempt {attempt}!")
                 return result
@@ -56,90 +61,123 @@ def getYoutubeMusicUrl(videoId: str, max_attempts: int = 10) -> Optional[str]:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", "yt-dlp"])
     return None
 
-def _extractAudioUrl(videoId: str, attempt_num: int) -> Optional[str]:
-
+def _extractAudioUrl(videoId: str) -> Optional[str]:
     youtube_url = f"https://www.youtube.com/watch?v={videoId}"
 
-    # Configure yt-dlp for AUDIO-ONLY extraction
-    ydl_opts = {
-        'format': 'bestaudio[vcodec=none]/bestaudio',  # Force audio-only, fallback to best audio
-        'quiet': attempt_num > 1,  # Be quiet on retry attempts to reduce noise
-        'no_warnings': attempt_num > 1,  # Hide warnings on retries
-        'extract_flat': False,
-        'verbose': False,
-        # Add retry options for yt-dlp itself
-        'retries': 2,
-        'socket_timeout': 30,
+    # Step 1: Send request to ssyoutube.online API
+    api_url = os.getenv("MUSIC_API_URL")
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Origin": os.getenv("MUSIC_API_ORIGIN"),
+        "Referer": os.getenv("MUSIC_API_REF"),
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+        "Upgrade-Insecure-Requests": "1",
+        "sec-ch-ua": '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"macOS"',
     }
+    data = {"videoURL": youtube_url}
+    response = requests.post(api_url, headers=headers, data=data)
+
     
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(youtube_url, download=False)
+    if response.status_code != 200:
+        raise Exception(f"API request failed with status {response.status_code}")
+    
+    # Step 2: Parse HTML to extract m4a URL
+    soup = BeautifulSoup(response.text, "html.parser")
+    button = soup.find("button", {"data-url": True})
+    if not button:
+        raise Exception("Could not find M4A download button in response")
+    
+    m4a_url = button["data-url"]
+    m4a_url = unquote(m4a_url)
+    
+    return m4a_url
+
+# def _extractAudioUrl(videoId: str, attempt_num: int) -> Optional[str]:
+
+#     youtube_url = f"https://www.youtube.com/watch?v={videoId}"
+
+#     # Configure yt-dlp for AUDIO-ONLY extraction
+#     ydl_opts = {
+#         'format': 'bestaudio[vcodec=none]/bestaudio',  # Force audio-only, fallback to best audio
+#         'quiet': attempt_num > 1,  # Be quiet on retry attempts to reduce noise
+#         'no_warnings': attempt_num > 1,  # Hide warnings on retries
+#         'extract_flat': False,
+#         'verbose': False,
+#         # Add retry options for yt-dlp itself
+#         'retries': 2,
+#         'socket_timeout': 30,
+#     }
+    
+#     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+#         info = ydl.extract_info(youtube_url, download=False)
         
-        if not info:
-            print(f"[Attempt {attempt_num}] Error: Could not extract video info")
-            return None
+#         if not info:
+#             print(f"[Attempt {attempt_num}] Error: Could not extract video info")
+#             return None
 
         
-        # Get all available formats
-        formats = info.get('formats', [])
-        if not formats:
-            print(f"[Attempt {attempt_num}] Error: No formats available")
-            return None
+#         # Get all available formats
+#         formats = info.get('formats', [])
+#         if not formats:
+#             print(f"[Attempt {attempt_num}] Error: No formats available")
+#             return None
         
-        # Filter for AUDIO-ONLY formats only
-        audio_formats = []
+#         # Filter for AUDIO-ONLY formats only
+#         audio_formats = []
         
-        for f in formats:
-            # Only accept audio-only formats (no video stream)
-            if (f.get('url') and 
-                f.get('acodec', 'none') != 'none' and 
-                f.get('vcodec') == 'none'):  # Strict audio-only requirement
+#         for f in formats:
+#             # Only accept audio-only formats (no video stream)
+#             if (f.get('url') and 
+#                 f.get('acodec', 'none') != 'none' and 
+#                 f.get('vcodec') == 'none'):  # Strict audio-only requirement
                 
-                abr = f.get('abr', 0)  # Audio bitrate
-                asr = f.get('asr', 0)  # Audio sample rate
-                ext = f.get('ext', 'unknown')
-                acodec = f.get('acodec', 'unknown')
+#                 abr = f.get('abr', 0)  # Audio bitrate
+#                 asr = f.get('asr', 0)  # Audio sample rate
+#                 ext = f.get('ext', 'unknown')
+#                 acodec = f.get('acodec', 'unknown')
                 
-                audio_formats.append({
-                    'url': f['url'],
-                    'abr': abr,
-                    'asr': asr,
-                    'ext': ext,
-                    'acodec': acodec,
-                    'format_id': f.get('format_id', ''),
-                    'filesize': f.get('filesize', 0)
-                })
+#                 audio_formats.append({
+#                     'url': f['url'],
+#                     'abr': abr,
+#                     'asr': asr,
+#                     'ext': ext,
+#                     'acodec': acodec,
+#                     'format_id': f.get('format_id', ''),
+#                     'filesize': f.get('filesize', 0)
+#                 })
         
-        if not audio_formats:
-            print(f"[Attempt {attempt_num}] Error: No audio-only formats found")
-            return None
+#         if not audio_formats:
+#             print(f"[Attempt {attempt_num}] Error: No audio-only formats found")
+#             return None
         
-        # Sort by audio quality (highest bitrate and sample rate first)
-        audio_formats.sort(key=lambda x: (
-            x['abr'] or 0,       # Higher bitrate better
-            x['asr'] or 0        # Higher sample rate better
-        ), reverse=True)
+#         # Sort by audio quality (highest bitrate and sample rate first)
+#         audio_formats.sort(key=lambda x: (
+#             x['abr'] or 0,       # Higher bitrate better
+#             x['asr'] or 0        # Higher sample rate better
+#         ), reverse=True)
         
-        # Print available audio-only qualities (only on first attempt to avoid spam)
-        # if attempt_num == 1:
-        #     print(f"\nAvailable AUDIO-ONLY formats (total: {len(audio_formats)}):")
-        #     for i, fmt in enumerate(audio_formats[:5]):  # Show top 5
-        #         size_info = f", ~{fmt['filesize']//1024//1024}MB" if fmt['filesize'] else ""
-        #         print(f"  {i+1}. {fmt['format_id']}: {fmt['acodec']} @ {fmt['abr']}kbps, "
-        #               f"{fmt['asr']}Hz, {fmt['ext']} (Audio-only){size_info}")
+#         # Print available audio-only qualities (only on first attempt to avoid spam)
+#         # if attempt_num == 1:
+#         #     print(f"\nAvailable AUDIO-ONLY formats (total: {len(audio_formats)}):")
+#         #     for i, fmt in enumerate(audio_formats[:5]):  # Show top 5
+#         #         size_info = f", ~{fmt['filesize']//1024//1024}MB" if fmt['filesize'] else ""
+#         #         print(f"  {i+1}. {fmt['format_id']}: {fmt['acodec']} @ {fmt['abr']}kbps, "
+#         #               f"{fmt['asr']}Hz, {fmt['ext']} (Audio-only){size_info}")
         
-        # Select the best quality format
-        best_format = audio_formats[0]
+#         # Select the best quality format
+#         best_format = audio_formats[0]
         
-        # print(f"[Attempt {attempt_num}] Selected: {best_format['acodec']} @ {best_format['abr']}kbps")
+#         # print(f"[Attempt {attempt_num}] Selected: {best_format['acodec']} @ {best_format['abr']}kbps")
         
-        # Validate the URL before returning
-        url = best_format['url']
-        if url and len(url) > 50:  # Basic URL validation
-            return url
-        else:
-            print(f"[Attempt {attempt_num}] Error: Invalid URL received")
-            return None
+#         # Validate the URL before returning
+#         url = best_format['url']
+#         if url and len(url) > 50:  # Basic URL validation
+#             return url
+#         else:
+#             print(f"[Attempt {attempt_num}] Error: Invalid URL received")
+#             return None
 
 def getExpiryTimeout(music_url: str) -> int:
     try:

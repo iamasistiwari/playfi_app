@@ -6,6 +6,7 @@ import os
 from upload import UploadToImageKitAIO
 import threading
 import utils
+import requests
 
 load_dotenv()
 
@@ -31,20 +32,22 @@ def worker():
 
             if queue_name == "song_tasks":
                 musicUrl = utils.getYoutubeMusicUrl(video_id)
-                if musicUrl:
+                resp = requests.head(musicUrl, timeout=5)
+        
+                if musicUrl and resp.status_code == 200:
                     cache_key = f"song_url:{video_id}"
                     timeout = utils.getExpiryTimeout(musicUrl)
                     r.set(cache_key, musicUrl, ex=timeout)
                     print(f"Saved result for key {cache_key}")
 
-                    permenant_url = r.get(f"permenant_url:{video_id}")
-                    if not permenant_url:
-                        print("Start Permanent fetching...")
-                        threading.Thread(
-                            target=UploadToImageKitAIO, 
-                            args=(video_id, musicUrl), 
-                            daemon=True
-                        ).start()
+                    # permenant_url = r.get(f"permenant_url:{video_id}")
+                    # if not permenant_url:
+                    #     print("Start Permanent fetching...")
+                    #     threading.Thread(
+                    #         target=UploadToImageKitAIO, 
+                    #         args=(video_id, musicUrl), 
+                    #         daemon=True
+                    #     ).start()
                 else:
                     print(f"Failed to get audio URL for {video_id}")
 
