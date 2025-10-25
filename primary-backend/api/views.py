@@ -42,7 +42,7 @@ def playSong(request):
     high_image_url = get_high_image_url(songId)
 
     temp_cache_key = f"song_url:{songId}"
-    permenant_cache_key = key = f"permenant_url:{songId}"
+    permenant_cache_key  = f"permenant_url:{songId}"
 
     redis_client = get_redis_client()
 
@@ -54,10 +54,12 @@ def playSong(request):
         )
 
     temp_cached_data = redis_client.get(temp_cache_key)
+
     if temp_cached_data:
         return Response(
             create_response(True, "Feteched from temp cached data", {"url":temp_cached_data, "image_url":high_image_url}), status=status.HTTP_200_OK    
         )
+    
     try:
         redis_client.lpush("song_tasks", songId)  
         time.sleep(2)
