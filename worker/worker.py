@@ -33,8 +33,8 @@ def worker():
             if queue_name == "song_tasks":
                 musicUrl = utils.getYoutubeMusicUrl(video_id)
                 resp = requests.head(musicUrl, timeout=5)
-        
-                if musicUrl and resp.status_code == 200:
+                print(f"Fetched URL: {musicUrl} with status code {resp.status_code}")
+                if musicUrl and resp.status_code >= 200 and resp.status_code < 400:
                     cache_key = f"song_url:{video_id}"
                     timeout = utils.getExpiryTimeout(musicUrl)
                     r.set(cache_key, musicUrl, ex=timeout)
@@ -57,6 +57,9 @@ def worker():
                 if video_details:
                     r.set(f"video_details:{video_id}", json.dumps(video_details))
                     print(f"Saved result for key {video_id}")
+                else:
+                    print(f"Failed to get video details for {video_id}")
+                    r.lpush("failed_video_details", video_id)
 
 if __name__ == "__main__":
     worker()
