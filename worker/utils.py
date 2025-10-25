@@ -46,7 +46,7 @@ def getYoutubeMusicUrl(videoId: str, max_attempts: int = 10) -> Optional[str]:
     
             result = _extractAudioUrl(videoId)
             if result:
-                print(f"✅ SUCCESS on attempt {attempt}!")
+                # print(f"✅ SUCCESS on attempt {attempt}!")
                 return result
             else:
                 print(f"❌ ATTEMPT {attempt} failed - No audio URL found")

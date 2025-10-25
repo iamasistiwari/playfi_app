@@ -33,7 +33,6 @@ def worker():
             if queue_name == "failed_video_details":
                 print(f"Processing video_details task for {video_id}")
                 video_details = utils.getVideoDetails(video_id)
-                print(f"Fetched video details: {video_details}")
                 if video_details:
                     r.set(f"video_details:{video_id}", json.dumps(video_details))
                     print(f"Saved result for key {video_id}")
