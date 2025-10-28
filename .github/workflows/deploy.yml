@@ -32,10 +32,16 @@ jobs:
             ./ \
             administrator@${{ secrets.VPS_HOST }}:/home/administrator/playfi-app/
 
-      - name: Create .env file on VPS
+      - name: Create .env file on VPS for primary-backend
         run: |
           sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no administrator@${{ secrets.VPS_HOST }} \
           "printf '%s\n' '${{ secrets.ENV_FILE }}' > /home/administrator/playfi-app/primary-backend/.env"
+
+
+      - name: Create .env file on VPS for worker
+        run: |
+          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no administrator@${{ secrets.VPS_HOST }} \
+          "printf '%s\n' '${{ secrets.ENV_FILE }}' > /home/administrator/playfi-app/worker/.env"
 
       - name: Install dependencies and run migrations on VPS
         run: |
@@ -71,6 +77,30 @@ jobs:
             # PM2 process
             pm2 delete playfi-django-backend || true
             pm2 start "uvicorn core.asgi:application --host 0.0.0.0 --port 7095" --name playfi-django-backend
+            pm2 save
+            pm2 startup systemd -u administrator --hp /home/administrator || true
+          EOF
+
+      - name: Start Song Worker backend with PM2 on VPS
+        run: |
+          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no administrator@${{ secrets.VPS_HOST }} << 'EOF'
+            cd /home/administrator/playfi-app/worker
+
+            # Create virtual environment if not exists
+            if [ ! -d "venv" ]; then
+              python3 -m venv venv
+            fi
+
+            # Upgrade pip inside venv
+            source venv/bin/activate
+            pip install --upgrade pip
+
+            # Install requirements
+            pip install -r requirements.txt
+
+            # PM2 process
+            pm2 delete playfi-app-worker-songs || true
+            pm2 start "python worker.py" --name playfi-app-worker-songs
             pm2 save
             pm2 startup systemd -u administrator --hp /home/administrator || true
           EOF
