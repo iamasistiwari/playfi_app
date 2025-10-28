@@ -65,7 +65,6 @@ jobs:
             python manage.py migrate
           EOF
 
-
       - name: Start Django backend with PM2 on VPS
         run: |
           sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no administrator@${{ secrets.VPS_HOST }} << 'EOF'
