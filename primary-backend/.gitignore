@@ -3,6 +3,7 @@ venv/
 
 # dependencies
 node_modules/
+build-1761667248800.apk
 
 #youtube cookie
 cookies.txt
