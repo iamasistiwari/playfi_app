@@ -10,6 +10,11 @@ import React, {
 } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
+
+import { useVideoPlayer } from "expo-video";
+
+
+
 interface PlayerContextProps {
   togglePlayPause: () => void;
   isPlaying: boolean;
@@ -47,7 +52,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
     isBuffering: false,
   });
   const listenerAdded = useRef(false);
-  const player = useAudioPlayer(currentSong?.musicUrl);
+  const player = useAudioPlayer(currentSong?.musicUrl || "");
 
   useEffect(() => {
     if (!player || listenerAdded.current) return;

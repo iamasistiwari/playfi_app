@@ -2,6 +2,7 @@ import React from "react";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PlayerProvider } from "@/hooks/usePlayer";
+// import { ProPlayerProvider } from "@/hooks/a";
 
 const SafeScreen = ({ children }) => {
   const inset = useSafeAreaInsets();
@@ -19,9 +20,11 @@ const SafeScreen = ({ children }) => {
           paddingBottom: inset.bottom,
         }}
       >
-        <PlayerProvider>
+        {/* <ProPlayerProvider> */}
+          <PlayerProvider>
           {children}
-        </PlayerProvider>
+          </PlayerProvider>
+        {/* </ProPlayerProvider> */}
       </View>
     </View>
   );

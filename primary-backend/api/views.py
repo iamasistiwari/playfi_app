@@ -48,7 +48,8 @@ def playSong(request):
 
         temp_cache_key = f"song_url:{songId}"
         permenant_cache_key  = f"permenant_url:{songId}"
-
+        related_songs_key = f"related_songs:{songId}"
+        
         redis_client = get_redis_client()
 
         permenant_cached_data = redis_client.get(permenant_cache_key)
@@ -56,13 +57,13 @@ def playSong(request):
         isGetRelatedSongs = str(request.GET.get("isGetRelatedSongs", "")).strip().strip('"')
         related_songs = None
         if isGetRelatedSongs in ["1", "true", "True"]:
-            cached_related_songs = redis_client.get(f"related_songs:{songId}")
+            cached_related_songs = redis_client.get(related_songs_key)
             if cached_related_songs:
-                related_songs = cached_related_songs
+                related_songs = json.loads(cached_related_songs)
             else:
                 related_songs = getRelatedSong(songId)
                 if related_songs:
-                    redis_client.set(f"related_songs:{songId}", json.dumps(related_songs), ex=60 * 60)
+                    redis_client.set(related_songs_key, json.dumps(related_songs), ex=60 * 60)
 
 
 

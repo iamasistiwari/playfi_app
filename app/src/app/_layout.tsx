@@ -12,6 +12,8 @@ import { Provider as MenuProvider } from "react-native-paper";
 import Toast from "react-native-toast-message";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "react-native";
+import { useEffect } from "react";
+import { AudioPro } from "react-native-audio-pro";
 
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
@@ -19,6 +21,7 @@ configureReanimatedLogger({
 });
 
 export default function Layout() {
+
   return (
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>

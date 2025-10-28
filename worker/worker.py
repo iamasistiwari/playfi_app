@@ -34,12 +34,12 @@ def worker():
                 musicUrl = utils.getYoutubeMusicUrl(video_id)
                 musicUrl = utils.getYoutubeMusicUrl(video_id)
                 print(f"Fetched music URL: {musicUrl} ")
-                if not musicUrl.endswith("="):
-                    print(f"Failed to fetch valid music URL for {video_id}")
+                if not musicUrl or not musicUrl.endswith("="):
+                    print(f"Failed to fetch music URL for {video_id}")
                     r.lpush("failed_song_tasks", video_id)
-                    return 
+                    return
 
-                if musicUrl and musicUrl.startswith("http") and len(musicUrl) > 10:
+                if musicUrl.startswith("http") and len(musicUrl) > 10:
                     try:
                         # Send a lightweight HEAD request first
                         resp = requests.head(musicUrl, timeout=5)
@@ -56,14 +56,14 @@ def worker():
                             r.set(cache_key, musicUrl, ex=timeout)
                             print(f"✅ Saved valid URL for key {cache_key}")
 
-                            # permenant_url = r.get(f"permenant_url:{video_id}")
-                            # if not permenant_url:
-                            #     print("Start Permanent fetching...")
-                            #     threading.Thread(
-                            #         target=UploadToImageKitAIO, 
-                            #         args=(video_id, musicUrl), 
-                            #         daemon=True
-                            #     ).start()
+                            permenant_url = r.get(f"permenant_url:{video_id}")
+                            if not permenant_url:
+                                print("Start Permanent fetching...")
+                                threading.Thread(
+                                    target=UploadToImageKitAIO, 
+                                    args=(video_id, musicUrl), 
+                                    daemon=True
+                                ).start()
                         else:
                             print(f"❌ Skipping cache for {video_id}: status {resp.status_code}")
                     

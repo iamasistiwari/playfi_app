@@ -97,9 +97,14 @@ jobs:
             # Install requirements
             pip install -r requirements.txt
 
-            # PM2 process
-            pm2 delete playfi-app-worker-songs || true
-            pm2 start "python worker.py" --name playfi-app-worker-songs
+            # PM2 process and run multiple workers
+            pm2 delete playfi-app-worker-songs_1 || true
+            pm2 delete playfi-app-worker-songs_2 || true
+            pm2 delete playfi-app-worker-songs_3 || true
+
+            pm2 start "python worker.py" --name playfi-app-worker-songs_1
+            pm2 start "python worker.py" --name playfi-app-worker-songs_2
+            pm2 start "python worker.py" --name playfi-app-worker-songs_3
             pm2 save
             pm2 startup systemd -u administrator --hp /home/administrator || true
           EOF

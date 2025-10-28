@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 const DummySearchBar = () => {
   const router = useRouter();
   return (
-    <TouchableOpacity className="px-4" onPress={() => router.push("/search")}>
+    <TouchableOpacity className="px-4" onPress={() => router.push("/test")}>
       <CustomInput
         placeholder="Search for songs"
         value={""}
