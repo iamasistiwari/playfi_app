@@ -4,12 +4,13 @@ from rest_framework.decorators import (
     permission_classes,
     authentication_classes,
 )
+import json
 import uuid
 import re
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .utils import youtubeSearch, is_valid_url, fetch_320kbps, getVideoDetails,get_high_image_url, check_valid_youtubeId, get_redis_client, check_url_song_mismatch
+from .utils import youtubeSearch, is_valid_url, fetch_320kbps, getVideoDetails,get_high_image_url, check_valid_youtubeId, get_redis_client, check_url_song_mismatch, getRelatedSong
 from core.utils import create_response
 from rest_framework import status
 from django.core.cache import cache
@@ -26,39 +27,64 @@ import time
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
 def playSong(request):
-    songId = request.GET.get("songId", "").replace(" ", "").strip('"')
-    if not songId :
+
+    try:
+
+        songId = request.GET.get("songId", "").replace(" ", "").strip('"')
+        if not songId :
+            return Response(
+                create_response(False, "Query parameter 'songId' is required"),
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not check_valid_youtubeId(songId) :
+            return Response(
+                create_response(False, "Youtube video id is not valid"),
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        
+
+        high_image_url = get_high_image_url(songId)
+
+        temp_cache_key = f"song_url:{songId}"
+        permenant_cache_key  = f"permenant_url:{songId}"
+
+        redis_client = get_redis_client()
+
+        permenant_cached_data = redis_client.get(permenant_cache_key)
+
+        isGetRelatedSongs = str(request.GET.get("isGetRelatedSongs", "")).strip().strip('"')
+        related_songs = None
+        if isGetRelatedSongs in ["1", "true", "True"]:
+            cached_related_songs = redis_client.get(f"related_songs:{songId}")
+            if cached_related_songs:
+                related_songs = cached_related_songs
+            else:
+                related_songs = getRelatedSong(songId)
+                if related_songs:
+                    redis_client.set(f"related_songs:{songId}", json.dumps(related_songs), ex=60 * 60)
+
+
+
+        if permenant_cached_data:
+            return Response(
+                create_response(True, "Feteched from permenant cached data", {"url":permenant_cached_data, "image_url":high_image_url, "related_songs":related_songs}), status=status.HTTP_200_OK
+            )
+
+        temp_cached_data = redis_client.get(temp_cache_key)
+
+        if temp_cached_data:
+            return Response(
+                create_response(True, "Feteched from temp cached data", {"url":temp_cached_data, "image_url":high_image_url, "related_songs":related_songs}), status=status.HTTP_200_OK    
+            )
+    except Exception as e:
+        print(f"Error fetching temp cached data: {e}")
         return Response(
-            create_response(False, "Query parameter 'songId' is required"),
+            create_response(False, "An error occurred while fetching temp cached data"),
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    if not check_valid_youtubeId(songId) :
-        return Response(
-            create_response(False, "Youtube video id is not valid"),
-            status=status.HTTP_404_NOT_FOUND,
-        )
-
-    high_image_url = get_high_image_url(songId)
-
-    temp_cache_key = f"song_url:{songId}"
-    permenant_cache_key  = f"permenant_url:{songId}"
-
-    redis_client = get_redis_client()
-
-    permenant_cached_data = redis_client.get(permenant_cache_key)
-
-    if permenant_cached_data:
-        return Response(
-            create_response(True, "Feteched from permenant cached data", {"url":permenant_cached_data, "image_url":high_image_url}), status=status.HTTP_200_OK
-        )
-
-    temp_cached_data = redis_client.get(temp_cache_key)
-
-    if temp_cached_data:
-        return Response(
-            create_response(True, "Feteched from temp cached data", {"url":temp_cached_data, "image_url":high_image_url}), status=status.HTTP_200_OK    
-        )
+    
     
     try:
         redis_client.lpush("song_tasks", songId)  
@@ -68,7 +94,7 @@ def playSong(request):
             cached_data = redis_client.get(temp_cache_key)
             if cached_data:
                 return Response(
-                    create_response(True, "Fetched Realtime", {"url":cached_data, "image_url":high_image_url}), status=status.HTTP_200_OK
+                    create_response(True, "Fetched Realtime", {"url":cached_data, "image_url":high_image_url, "related_songs":related_songs}), status=status.HTTP_200_OK
                 )
             time.sleep(1)
             c += 1

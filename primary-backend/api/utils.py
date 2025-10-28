@@ -109,6 +109,36 @@ def getExpiryTimeout(music_url: str) -> int:
         print(f"Error extracting expiry: {e}")
         return 60 * 60 * 24  # fallback: 24 hours
 
+def getRelatedSong(video_id: str):
+    try:
+        yt = getYTMusic()
+        watch_playlist = yt.get_watch_playlist(videoId=video_id)
+
+        # Attempt to find the browseId
+        browse_id = None
+        if isinstance(watch_playlist, dict):
+            # Some versions: watch_playlist["related"] might directly be a string (browseId) or nested
+            related = watch_playlist.get("related")
+            if isinstance(related, dict):
+                browse_id = related.get("browseId")
+            elif isinstance(related, str):
+                browse_id = related
+
+        if not browse_id:
+            raise RuntimeError("Could not find a valid browseId in watch_playlist: " + str(watch_playlist))
+
+        related_results = yt.get_song_related(browse_id)
+        if isinstance(related_results, list):
+            for item in related_results:
+                if item.get("title") == "You might also like":
+                    return item.get("contents", [])
+
+        return None
+    except Exception as e:
+        print(f"Error extracting related songs: {e}")
+        return None
+    
+
 def youtubeSearch(query: str) -> List[YoutubeVideoType]:
     results = getYTMusic().search(query, filter="songs")
     validated_videos: List[YoutubeVideoType] = []
