@@ -1,20 +1,22 @@
-import { Song, Video } from "@/types/song";
+import { SetSongResult, Song, Video } from "@/types/song";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { setSongAsync } from "./thunks/songThunk";
 
 interface songPlayerState {
   currentSong: Song | null;
-  queue: Video[];
   loading: boolean;
   recentSearch: string[];
+  queue: Video[];
+  playedSongs: Video[];
   lastSession: Video[];
 }
 
 const initialState: songPlayerState = {
   currentSong: null,
-  queue: [],
   loading: false,
   recentSearch: [],
+  queue: [],
+  playedSongs: [],
   lastSession: [],
 };
 
@@ -36,6 +38,19 @@ const songPlayerSlice = createSlice({
 
     setSongQueue(state, action: PayloadAction<Video[]>) {
       state.queue = action.payload;
+    },
+    addToPlayedSongs(state, action: PayloadAction<Video>) {
+      if (!Array.isArray(state.playedSongs)) {
+        state.playedSongs = [];
+      }
+      state.playedSongs = state.playedSongs.filter((song) => song.id !== action.payload.id);
+      state.playedSongs.push(action.payload);
+    },
+    removeFromPlayedSongs(state, action: PayloadAction<string>) {
+      if (!Array.isArray(state.playedSongs)) {
+        state.playedSongs = [];
+      }
+      state.playedSongs = state.playedSongs.filter((song) => song.id !== action.payload);
     },
 
     addSongToQueue(state, action: PayloadAction<Video>) {
@@ -65,18 +80,16 @@ const songPlayerSlice = createSlice({
       })
       .addCase(
         setSongAsync.fulfilled,
-        (
-          state,
-          action: PayloadAction<{
-            song: Song | null;
-            error: string | null;
-          }>
-        ) => {
+        (state, action: PayloadAction<SetSongResult>) => {
           if (!action.payload.song) {
             state.loading = false;
             return;
           }
           state.currentSong = action.payload.song;
+          state.queue = [
+            ...state.queue,
+            ...(action.payload.relatedSongs || []),
+          ];
           state.loading = false;
         }
       );
@@ -90,4 +103,6 @@ export const {
   addToRecentSearch,
   setSongQueue,
   resetSongPlayer,
+  addToPlayedSongs,
+  removeFromPlayedSongs,
 } = songPlayerSlice.actions;

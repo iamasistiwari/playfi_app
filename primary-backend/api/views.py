@@ -64,8 +64,8 @@ def playSong(request):
                 related_songs = getRelatedSong(songId)
                 if related_songs:
                     redis_client.set(related_songs_key, json.dumps(related_songs), ex=60 * 60)
-
-
+                video_ids = [song["videoId"] for song in related_songs]
+                redis_client.lpush("songs_queue", json.dumps(video_ids))
 
         if permenant_cached_data:
             return Response(

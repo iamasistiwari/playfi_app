@@ -1,6 +1,6 @@
 import { AppDispatch, RootState } from "@/redux/store";
-import { playNextAsync } from "@/redux/thunks/songThunk";
-import { AudioPlayer, useAudioPlayer, setAudioModeAsync } from "expo-audio";
+import { playNextAsync, playPreviousAsync } from "@/redux/thunks/songThunk";
+
 import React, {
   createContext,
   useContext,
@@ -9,116 +9,147 @@ import React, {
   useState,
 } from "react";
 import { useDispatch, useSelector } from "react-redux";
-
-
-import { useVideoPlayer } from "expo-video";
-
-
+import {
+  AudioPro,
+  AudioProContentType,
+  AudioProEventType,
+  AudioProState,
+  AudioProStateChangedPayload,
+  useAudioPro,
+} from "react-native-audio-pro";
 
 interface PlayerContextProps {
   togglePlayPause: () => void;
-  isPlaying: boolean;
-  player: AudioPlayer;
   playerState: {
     position: number;
     duration: number;
     isBuffering: boolean;
+    isPlaying: boolean
   };
   seekTo: (value: number) => void;
 }
 
 const PlayerContext = createContext<PlayerContextProps>({
   togglePlayPause: () => {},
-  isPlaying: false,
-  player: useAudioPlayer(),
   playerState: {
     position: 0,
     duration: 0,
     isBuffering: false,
+    isPlaying: false
   },
   seekTo: () => {},
 });
 
 export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
-  const firstMount = useRef(false);
   const { currentSong, queue } = useSelector(
     (state: RootState) => state.songPlayer
   );
-  const [isPlaying, setIsPlaying] = useState(false);
+  const isFirstMount = useRef(true);
   const dispatch = useDispatch<AppDispatch>();
   const [playerState, setPlayerState] = useState({
     position: 0,
     duration: 0,
     isBuffering: false,
+    isPlaying: false
   });
-  const listenerAdded = useRef(false);
-  const player = useAudioPlayer(currentSong?.musicUrl || "");
 
+  // setup the player on mount
   useEffect(() => {
-    if (!player || listenerAdded.current) return;
-
-    const listener = player?.addListener("playbackStatusUpdate", (status) => {
-      setPlayerState({
-        position: status.currentTime,
-        duration: status.duration,
-        isBuffering: status.isBuffering,
-      });
-      
-      if (status.didJustFinish) {
-        setIsPlaying(false);
-      }
-      if (status.playing && !status.isBuffering && (status.duration - status.currentTime <= 2)) {
-        dispatch(playNextAsync());
-      }
-    });
-    listenerAdded.current = true;
-
-    return () => {
-      listener?.remove();
-      listenerAdded.current = false;
-    };
-  }, [player]);
-
-  const seekTo = (value: number) => {
-    player?.seekTo(value);
-  };
-
-  useEffect(() => {
-    setAudioModeAsync({
-      playsInSilentMode: true,
-      shouldPlayInBackground: true,
-      interruptionMode: "doNotMix",
+    AudioPro.configure({
+      contentType: AudioProContentType.MUSIC,
+      showNextPrevControls: true, // Hide next/previous buttons
+      showSkipControls: false,
+      skipIntervalMs: 10000, // Number of milliseconds for skip forward/back controls (default: 30000)
     });
   }, []);
 
+  // subscibing for event
+  useEffect(() => {
+    const subscription = AudioPro.addEventListener((event) => {
+      switch (event.type) {
+        case AudioProEventType.REMOTE_NEXT:
+          // Handle next track button press
+          console.log("User pressed Next button");
+          dispatch(playNextAsync());
+          break;
+
+        case AudioProEventType.REMOTE_PREV:
+          // Handle previous track button press
+          console.log("User pressed Previous button");
+          dispatch(playPreviousAsync());
+          break;
+
+        case AudioProEventType.STATE_CHANGED:
+          // Handle state changes
+          // console.log("State is Changed to", event?.payload);
+          setPlayerState((prev) => ({
+            ...prev,
+            isBuffering: event?.payload?.state === AudioProState.LOADING,
+            isPlaying: event?.payload?.state === AudioProState.PLAYING,
+          }));
+          break;
+
+        case AudioProEventType.PROGRESS:
+          setPlayerState((prev) => ({
+            ...prev,
+            position: event?.payload?.position || prev.position,
+            duration: event?.payload?.duration || prev.duration,
+          }));
+
+          // console.log("Progress state is", event?.payload);
+      }
+    });
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  const seekTo = (value: number) => {
+    if (AudioPro) {
+      AudioPro.seekTo(value);
+    }
+  };
+
   useEffect(() => {
     const prepareAudio = async () => {
-      if ((currentSong?.musicUrl?.length || 0) > 0 && firstMount.current) {
-        player.seekTo(0.5);
-        player.play();
-        setIsPlaying(true);
-      } else {
-        firstMount.current = true;
+      if ((currentSong?.musicUrl?.length || 0) > 0 && isFirstMount.current) {
+        const trackToPlay = {
+          id: currentSong?.video?.id || "",
+          url: currentSong?.musicUrl || "",
+          title: currentSong?.video?.title || "",
+          artwork: currentSong?.video?.richThumbnail?.url || "",
+          artist: currentSong?.video?.channel?.name || "",
+        };
+        AudioPro.play(trackToPlay);
       }
     };
     prepareAudio();
   }, [currentSong]);
 
   const togglePlayPause = () => {
-    if (isPlaying) {
-      player.pause();
-    } else {
-      player.play();
+    const state = AudioPro.getState();
+    if (state === AudioProState.PLAYING) {
+      AudioPro.pause();
     }
-    setIsPlaying(!isPlaying);
+    if (state === AudioProState.IDLE) {
+      const trackToPlay = {
+        id: currentSong?.video?.id || "",
+        url: currentSong?.musicUrl || "",
+        title: currentSong?.video?.title || "",
+        artwork: currentSong?.video?.richThumbnail?.url || "",
+        artist: currentSong?.video?.channel?.name || "",
+      };
+      AudioPro.play(trackToPlay);
+    }
+    if (state === AudioProState.PAUSED) {
+      AudioPro.resume();
+    }
   };
 
   return (
     <PlayerContext.Provider
       value={{
         togglePlayPause,
-        isPlaying,
-        player,
         playerState,
         seekTo,
       }}

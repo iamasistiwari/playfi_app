@@ -2,8 +2,8 @@ import { AppDispatch, RootState } from "@/redux/store";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
-import React, { useRef } from "react";
-import { Image, Pressable, Text, View } from "react-native";
+import React from "react";
+import { Pressable, Text, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { CustomButton } from "../sub/CustomButton";
 import Loader from "../sub/Loader";
@@ -12,7 +12,6 @@ import { usePlayer } from "@/hooks/usePlayer";
 import { formatTime } from "@/lib/customfn";
 import { playNextAsync } from "@/redux/thunks/songThunk";
 import SongImage from "../sub/SongImage";
-import { cn } from "@/lib/utils";
 
 const SongPlayer = () => {
   const pathname = usePathname();
@@ -23,8 +22,7 @@ const SongPlayer = () => {
   const dispatch = useDispatch<AppDispatch>();
   const {
     togglePlayPause,
-    isPlaying,
-    playerState: { isBuffering, position, duration },
+    playerState: { isBuffering, position, duration, isPlaying },
     seekTo,
   } = usePlayer();
 

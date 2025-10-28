@@ -14,24 +14,33 @@ export const searchSongs = async (query: string): Promise<Video[]> => {
 };
 
 export const getSongUrl = async (
-  songId: string
+  songId: string,
+  less_res_image_url: string,
+  isGetRelatedSongs: boolean,
 ): Promise<{
   url: string | null;
-  image_url: string | null;
+  high_res_image_url: string | null;
+  less_res_image_url: string | null;
+  related_songs: Video[] | null;
 }> => {
   try {
     const response = await get("/api/v1/playsong/", {
       songId: songId,
+      isGetRelatedSongs: isGetRelatedSongs ? 1 : 0
     });
     let data = {
       url: response?.responseData?.url || null,
-      image_url: response?.responseData?.image_url || null,
+      high_res_image_url: response?.responseData?.high_res_image_url || null,
+      less_res_image_url: less_res_image_url || null,
+      related_songs: response?.responseData?.related_songs || null,
     };
     return data;
   } catch (error) {
     return {
       url: null,
-      image_url: null,
+      high_res_image_url: null,
+      less_res_image_url: null,
+      related_songs: null,
     };
   }
 };

@@ -25,8 +25,7 @@ const Song = () => {
   );
   const {
     togglePlayPause,
-    isPlaying,
-    playerState: { isBuffering },
+    playerState,
     seekTo,
   } = usePlayer();
   const dispatch = useDispatch<AppDispatch>();
@@ -95,14 +94,14 @@ const Song = () => {
               }}
             />
 
-            {loading || isBuffering ? (
+            {loading || playerState.isBuffering ? (
               <Loader size={50} />
             ) : (
               <CustomButton
                 className="px-0 py-0 h-full"
                 variant={"ghost"}
                 icon={
-                  isPlaying ? (
+                  playerState.isPlaying ? (
                     <Ionicons name="pause-circle" size={75} color="#16a34a" />
                   ) : (
                     <Ionicons name="play-circle" size={75} color="#e5e5e5" />

@@ -24,7 +24,9 @@ const Test = () => {
   useEffect(() => {
     AudioPro.configure({
       contentType: AudioProContentType.MUSIC,
-      debug: false
+      showNextPrevControls: true, // Hide next/previous buttons
+      showSkipControls: false,
+      skipIntervalMs: 10000, // Number of milliseconds for skip forward/back controls (default: 30000)
     });
   }, []);
 

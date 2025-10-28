@@ -109,7 +109,7 @@ def getExpiryTimeout(music_url: str) -> int:
         print(f"Error extracting expiry: {e}")
         return 60 * 60 * 24  # fallback: 24 hours
 
-def getRelatedSong(video_id: str):
+def getRelatedSong(video_id: str) -> List[YoutubeVideoType]:
     try:
         yt = getYTMusic()
         watch_playlist = yt.get_watch_playlist(videoId=video_id)

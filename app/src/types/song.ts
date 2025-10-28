@@ -11,6 +11,11 @@ interface User {
   name: string;
   joined_at: string;
 }
+export type SetSongResult = {
+  song: Song | null;
+  relatedSongs: Video[] | null;
+  error: string | null;
+};
 
 export interface Playlist {
   id: string;
@@ -53,9 +58,8 @@ export interface Thumbnail {
   height: number;
 }
 
-
 export interface Song {
   video: Video;
   musicUrl: string;
-  highResImageUrl: string | null
+  highResImageUrl: string | null;
 }
