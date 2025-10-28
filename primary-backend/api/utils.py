@@ -128,12 +128,40 @@ def getRelatedSong(video_id: str):
             raise RuntimeError("Could not find a valid browseId in watch_playlist: " + str(watch_playlist))
 
         related_results = yt.get_song_related(browse_id)
+        contents = None 
         if isinstance(related_results, list):
             for item in related_results:
                 if item.get("title") == "You might also like":
-                    return item.get("contents", [])
+                    contents = item.get("contents", [])
+                    break
+        recomended_videos = []
+        if contents:
+            for item in contents:
+                video = {
+                    "type": "music",
+                    "id": item.get("videoId", ""),
+                    "title": item.get("title", ""),
+                    "publishedTime": str(item.get("year") or ""),
+                    "duration": item.get("duration", ""),
+                    "viewCount": {"text": item.get("views", "0 views"), "short": None},
+                    "thumbnails": item.get("thumbnails", []),
+                    "richThumbnail": item["thumbnails"][-1] if item.get("thumbnails") else None,
+                    "channel": {
+                        "name": item["artists"][0]["name"] if item.get("artists") else "",
+                        "id": item["artists"][0]["id"] if item.get("artists") else "",
+                        "thumbnails": [],
+                        "link": ""
+                    },
+                    "accessibility": {
+                        "title": item.get("title", ""),
+                        "duration": item.get("duration", "")
+                    },
+                    "link": f"https://music.youtube.com/watch?v={item.get('videoId','')}"
+                }
+                recomended_videos.append(video)
+        
+        return recomended_videos
 
-        return None
     except Exception as e:
         print(f"Error extracting related songs: {e}")
         return None
