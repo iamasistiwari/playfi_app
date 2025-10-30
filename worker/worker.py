@@ -19,8 +19,7 @@ r = redis.Redis(
     decode_responses=True
 )
 
-QUEUE_KEYS = ["song_tasks", "video_details", "songs_queue"]  # List of Redis queues
-
+QUEUE_KEYS = ["song_tasks", "songs_queue"]  # List of Redis queues
 
 def worker():
     print("Worker started... waiting for tasks.")
@@ -41,21 +40,11 @@ def worker():
                     if r.exists(f"song_url:{video_id}"):
                         print(f"Song {video_id} already exists in cache")
                         continue
-                    
+                    r.lpush("failed_video_details", video_id)
                     handleSongLink(video_id)
+                    
             if queue_name == "song_tasks":
                 handleSongLink(video_id)
-
-            if queue_name == "video_details":
-                print(f"Processing video_details task for {video_id}")
-                video_details = utils.getVideoDetails(video_id)
-                if video_details:
-                    r.set(f"video_details:{video_id}", json.dumps(video_details))
-                    print(f"Saved result for key {video_id}")
-                else:
-                    print(f"Failed to get video details for {video_id}")
-                    r.lpush("failed_video_details", video_id)
-
 
 def handleSongLink(video_id: str):
     musicUrl = utils.getYoutubeMusicUrl(video_id)
@@ -81,14 +70,14 @@ def handleSongLink(video_id: str):
                 r.set(cache_key, musicUrl, ex=timeout)
                 print(f"✅ Saved valid URL for key {cache_key}")
 
-                permenant_url = r.get(f"permenant_url:{video_id}")
-                if not permenant_url:
-                    print("Start Permanent fetching...")
-                    threading.Thread(
-                        target=UploadToImageKitAIO, 
-                        args=(video_id, musicUrl), 
-                        daemon=True
-                    ).start()
+                # permenant_url = r.get(f"permenant_url:{video_id}")
+                # if not permenant_url:
+                #     print("Start Permanent fetching...")
+                #     threading.Thread(
+                #         target=UploadToImageKitAIO, 
+                #         args=(video_id, musicUrl), 
+                #         daemon=True
+                #     ).start()
             else:
                 print(f"❌ Skipping cache for {video_id}: status {resp.status_code}")
         

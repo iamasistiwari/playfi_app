@@ -27,36 +27,25 @@ import time
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
 def playSong(request):
-
     try:
-
         songId = request.GET.get("songId", "").replace(" ", "").strip('"')
-        if not songId :
+
+        if not songId or not check_valid_youtubeId(songId) :
             return Response(
-                create_response(False, "Query parameter 'songId' is required"),
+                create_response(False, "Query parameter 'songId' is required and Youtube video id must be valid"),
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        if not check_valid_youtubeId(songId) :
-            return Response(
-                create_response(False, "Youtube video id is not valid"),
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        
-
-        high_image_url = get_high_image_url(songId)
-
-        temp_cache_key = f"song_url:{songId}"
-        permenant_cache_key  = f"permenant_url:{songId}"
-        related_songs_key = f"related_songs:{songId}"
-        
         redis_client = get_redis_client()
+        redis_client.lpush("image_url", songId)
 
+        permenant_cache_key  = f"permenant_url:{songId}"
         permenant_cached_data = redis_client.get(permenant_cache_key)
 
         isGetRelatedSongs = str(request.GET.get("isGetRelatedSongs", "")).strip().strip('"')
         related_songs = None
         if isGetRelatedSongs in ["1", "true", "True"]:
+            related_songs_key = f"related_songs:{songId}"
             cached_related_songs = redis_client.get(related_songs_key)
             if cached_related_songs:
                 related_songs = json.loads(cached_related_songs)
@@ -71,25 +60,17 @@ def playSong(request):
 
         if permenant_cached_data:
             return Response(
-                create_response(True, "Feteched from permenant cached data", {"url":permenant_cached_data, "image_url":high_image_url, "related_songs":related_songs}), status=status.HTTP_200_OK
+                create_response(True, "Feteched from permenant cached data", {"url":permenant_cached_data, "related_songs":related_songs}), status=status.HTTP_200_OK
             )
 
+        temp_cache_key = f"song_url:{songId}"
         temp_cached_data = redis_client.get(temp_cache_key)
 
         if temp_cached_data:
             return Response(
-                create_response(True, "Feteched from temp cached data", {"url":temp_cached_data, "image_url":high_image_url, "related_songs":related_songs}), status=status.HTTP_200_OK    
+                create_response(True, "Feteched from temp cached data", {"url":temp_cached_data, "related_songs":related_songs}), status=status.HTTP_200_OK    
             )
-    except Exception as e:
-        print(f"Error fetching temp cached data: {e}")
-        return Response(
-            create_response(False, "An error occurred while fetching temp cached data"),
-            status=status.HTTP_404_NOT_FOUND,
-        )
 
-    
-    
-    try:
         redis_client.lpush("song_tasks", songId)  
         time.sleep(2)
         c = 0
@@ -97,7 +78,7 @@ def playSong(request):
             cached_data = redis_client.get(temp_cache_key)
             if cached_data:
                 return Response(
-                    create_response(True, "Fetched Realtime", {"url":cached_data, "image_url":high_image_url, "related_songs":related_songs}), status=status.HTTP_200_OK
+                    create_response(True, "Fetched Realtime", {"url":cached_data, "related_songs":related_songs}), status=status.HTTP_200_OK
                 )
             time.sleep(1)
             c += 1
@@ -105,10 +86,10 @@ def playSong(request):
             create_response(False, "An error occurred while fetching data after loop 10 times"),
             status=status.HTTP_404_NOT_FOUND,
         )
-
-    except Exception as _:
+    except Exception as e:
+        print(f"Error fetching temp cached data: {e}")
         return Response(
-            create_response(False, "An error occurred while fetching data"),
+            create_response(False, "An error occurred while fetching temp cached data"),
             status=status.HTTP_404_NOT_FOUND,
         )
     
@@ -121,15 +102,9 @@ def searchSongs(request):
     q = re.sub(r"[^a-zA-Z0-9\s]", "", q)
     q = q.strip('"')
 
-    if not q:
+    if not q or len(q.strip()) <= 2:
         return Response(
-            create_response(False, "Query parameter 'q' is required"),
-            status=status.HTTP_404_NOT_FOUND,
-        )
-    
-    if len(q) < 1:
-        return Response(
-            create_response(False, "Query atleast 3 characters"),
+            create_response(False, "Query parameter 'q' is required or Query atleast 3 characters"),
             status=status.HTTP_404_NOT_FOUND,
         )
 
@@ -143,7 +118,7 @@ def searchSongs(request):
 
     try:
         results = youtubeSearch(q)
-        cache.set(cache_key, results, timeout=60 * 60 * 1)  # Cache for 1 hour
+        cache.set(cache_key, results, timeout=60 * 60 * 1 * 5)  # Cache for 1 hour
         return Response(
             create_response(True, "Feteched", results), status=status.HTTP_200_OK
         )

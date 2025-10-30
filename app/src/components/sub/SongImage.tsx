@@ -1,5 +1,5 @@
 import React from "react";
-import { Image } from "react-native";
+import FastImage from "react-native-fast-image";
 
 type SongImageProps = {
   url: string;
@@ -13,7 +13,13 @@ const SongImageComponent: React.FC<SongImageProps> = ({
   height = 50,
 }) => {
   return (
-    <Image source={{ uri: url }} style={{ width, height, borderRadius: 12 }} />
+    <FastImage
+      style={{ width, height, borderRadius: 12 }}
+      source={{
+        uri: url,
+      }}
+      resizeMode={FastImage.resizeMode.contain}
+    />
   );
 };
 

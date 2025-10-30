@@ -159,7 +159,7 @@ def getRelatedSong(video_id: str) -> List[YoutubeVideoType]:
                     "link": f"https://music.youtube.com/watch?v={item.get('videoId','')}"
                 }
                 recomended_videos.append(video)
-        
+                redis_client.lpush("image_url", item.get("videoId", ""))
         return recomended_videos
 
     except Exception as e:
@@ -171,6 +171,7 @@ def youtubeSearch(query: str) -> List[YoutubeVideoType]:
     results = getYTMusic().search(query, filter="songs")
     validated_videos: List[YoutubeVideoType] = []
     unique_videos = []
+    redis_client = get_redis_client()
 
     for video in results[:6]:  
         try:
@@ -207,7 +208,8 @@ def youtubeSearch(query: str) -> List[YoutubeVideoType]:
         if vid["id"] not in seen_ids:
             unique_videos.append(vid)
             seen_ids.add(vid["id"])
-            
+    redis_client.lpush("songs_queue", json.dumps(seen_ids))
+    redis_client.lpush("image_url_set", json.dumps(seen_ids))
     return unique_videos
 
 def getVideoDetails(video_id: str) -> dict:

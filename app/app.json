@@ -51,8 +51,8 @@
         }
       ]
     ],
-    "name": "app",
-    "slug": "app",
+    "name": "PlayFi",
+    "slug": "playfi",
     "extra": {
       "router": {
         "origin": "https://n"

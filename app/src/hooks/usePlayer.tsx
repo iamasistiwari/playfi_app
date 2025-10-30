@@ -1,6 +1,5 @@
 import { AppDispatch, RootState } from "@/redux/store";
 import { playNextAsync, playPreviousAsync } from "@/redux/thunks/songThunk";
-
 import React, {
   createContext,
   useContext,
@@ -14,8 +13,6 @@ import {
   AudioProContentType,
   AudioProEventType,
   AudioProState,
-  AudioProStateChangedPayload,
-  useAudioPro,
 } from "react-native-audio-pro";
 
 interface PlayerContextProps {
@@ -24,7 +21,7 @@ interface PlayerContextProps {
     position: number;
     duration: number;
     isBuffering: boolean;
-    isPlaying: boolean
+    isPlaying: boolean;
   };
   seekTo: (value: number) => void;
 }
@@ -35,7 +32,7 @@ const PlayerContext = createContext<PlayerContextProps>({
     position: 0,
     duration: 0,
     isBuffering: false,
-    isPlaying: false
+    isPlaying: false,
   },
   seekTo: () => {},
 });
@@ -50,7 +47,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
     position: 0,
     duration: 0,
     isBuffering: false,
-    isPlaying: false
+    isPlaying: false,
   });
 
   // setup the player on mount
@@ -95,8 +92,9 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
             position: event?.payload?.position || prev.position,
             duration: event?.payload?.duration || prev.duration,
           }));
-
-          // console.log("Progress state is", event?.payload);
+          if(event?.payload?.duration - event?.payload?.position < 4000) {
+            dispatch(playNextAsync());
+          }
       }
     });
     return () => {
@@ -112,7 +110,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const prepareAudio = async () => {
-      if ((currentSong?.musicUrl?.length || 0) > 0 && isFirstMount.current) {
+      if ((currentSong?.musicUrl?.length || 0) > 0) {
         const trackToPlay = {
           id: currentSong?.video?.id || "",
           url: currentSong?.musicUrl || "",
@@ -120,7 +118,16 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
           artwork: currentSong?.video?.richThumbnail?.url || "",
           artist: currentSong?.video?.channel?.name || "",
         };
-        AudioPro.play(trackToPlay);
+        if (!isFirstMount.current) {
+          AudioPro.play(trackToPlay);
+          setPlayerState((prev) => ({
+            ...prev,
+            position: 0,
+          }));
+        } else {
+          AudioPro.play(trackToPlay, { autoPlay: false });
+          isFirstMount.current = false;
+        }
       }
     };
     prepareAudio();

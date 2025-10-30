@@ -2,21 +2,47 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import { getSongUrl } from "@/actions/songs";
 import { SetSongResult, Song, Video } from "@/types/song";
 import * as FileSystem from "expo-file-system";
-import { RootState } from "../store";
-import { addToPlayedSongs, removeSongFromQueue } from "../song-player";
+import { AppDispatch, RootState } from "../store";
+import {
+  addToDownloadedSongs,
+  addToPlayedSongs,
+  removeFromDownloadedSongs,
+  removeSongFromQueue,
+} from "../song-player";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useDispatch } from "react-redux";
 
-async function downloadAndMove(musicUrl: string, videoId: string, image_url: string | null, relatedSongs: Video[] | null) {
-  const tempFileUri = `${FileSystem.cacheDirectory}${videoId}_temp_audio.mp4`;
-  const finalUri = `${FileSystem.documentDirectory}${videoId}.mp4`;
-  
-  const tempImageUri = `${FileSystem.cacheDirectory}${videoId}_temp_image.jpg`;
-  const finalImageUri = `${FileSystem.documentDirectory}${videoId}.jpg`;
+async function removeDownloadedSong(video: Video) {
+  const finalUri = `${FileSystem.documentDirectory}${video.id}.mp4`;
+  const dispatch = useDispatch<AppDispatch>();
   try {
+    // Delete old file if exists
+    const oldFile = await FileSystem.getInfoAsync(finalUri);
+    if (oldFile.exists) {
+      await FileSystem.deleteAsync(finalUri, { idempotent: true });
+    }
+    dispatch(removeFromDownloadedSongs(video.id));
+  } catch (error) {}
+}
 
+async function downloadAndMove(
+  musicUrl: string,
+  video: Video,
+  image_url: string | null,
+  relatedSongs: Video[] | null
+) {
+  const tempFileUri = `${FileSystem.cacheDirectory}${video.id}_temp_audio.mp4`;
+  const finalUri = `${FileSystem.documentDirectory}${video.id}.mp4`;
+  const dispatch = useDispatch<AppDispatch>();
+  const tempImageUri = `${FileSystem.cacheDirectory}${video.id}_temp_image.jpg`;
+  const finalImageUri = `${FileSystem.documentDirectory}${video.id}.jpg`;
+  try {
     // caching the related songs
     if (relatedSongs) {
-      await AsyncStorage.setItem(`song_related_${videoId}`, JSON.stringify(relatedSongs));
+      await AsyncStorage.setItem(
+        `song_related_${video.id}`,
+        JSON.stringify(relatedSongs)
+      );
     }
 
     // caching the image url
@@ -49,36 +75,41 @@ async function downloadAndMove(musicUrl: string, videoId: string, image_url: str
       from: res.uri,
       to: finalUri,
     });
+    dispatch(addToDownloadedSongs(video));
   } catch (error) {}
 }
 
-
-
 export const setSongAsync = createAsyncThunk<SetSongResult, Video>(
   "songPlayer/setSongAsync",
-  async (video, { getState }) => {
+  async (video, { getState, dispatch }) => {
     const fileUri = `${FileSystem.documentDirectory}${video.id}.mp4`;
-
+    const state = getState() as RootState;
     // Check if already downloaded
+    dispatch(setNextSongAsync());
     const fileInfo = await FileSystem.getInfoAsync(fileUri);
     if (fileInfo.exists) {
       const cachedImage = await AsyncStorage.getItem(`song_image_${video.id}`);
-      const relatedSongs = await AsyncStorage.getItem(
-        `song_related_${video.id}`
-      );
+      let relatedSongs = null;
+      if (state.songPlayer.queue.length < 1) {
+        relatedSongs = await AsyncStorage.getItem(`song_related_${video.id}`);
+      }
+      // add to played songs
       return {
         song: {
           video,
           musicUrl: fileUri,
-          highResImageUrl: cachedImage || "",
+          image_url: cachedImage ? cachedImage : video?.richThumbnail?.url,
         },
         relatedSongs: relatedSongs ? JSON.parse(relatedSongs) : null,
         error: null,
       };
     }
-    const state = getState() as RootState;
-    const isGetRelatedSongs = state.songPlayer.queue.length < 2;
-    const data = await getSongUrl(video.id, video?.richThumbnail?.url || "",  isGetRelatedSongs);
+    const isGetRelatedSongs = state.songPlayer.queue.length < 1;
+    const data = await getSongUrl(
+      video.id,
+      video?.richThumbnail?.url || "",
+      isGetRelatedSongs
+    );
     if (!data.url) {
       return {
         song: null,
@@ -87,18 +118,13 @@ export const setSongAsync = createAsyncThunk<SetSongResult, Video>(
       };
     }
 
-    downloadAndMove(
-      data.url,
-      video.id,
-      data.high_res_image_url || data.less_res_image_url,
-      data.related_songs
-    );
+    downloadAndMove(data.url, video, data.image_url, data.related_songs);
 
     return {
       song: {
         video,
         musicUrl: data.url,
-        highResImageUrl: data.high_res_image_url || data.less_res_image_url,
+        image_url: data.image_url,
       },
       relatedSongs: data.related_songs || null,
       error: null,
@@ -106,16 +132,46 @@ export const setSongAsync = createAsyncThunk<SetSongResult, Video>(
   }
 );
 
+export const setNextSongAsync = createAsyncThunk<Video | null>(
+  "songPlayer/setNextSongAsync",
+  async (_, { getState }) => {
+    const state = getState() as RootState;
+    const video = state.songPlayer.queue[0];
+
+    if (!video) {
+      return null
+    }
+    const fileUri = `${FileSystem.documentDirectory}${video.id}.mp4`;
+
+    // Check if already downloaded
+    const fileInfo = await FileSystem.getInfoAsync(fileUri);
+    if (fileInfo.exists) {
+      return video;
+    }
+    const isGetRelatedSongs = state.songPlayer.queue.length < 1;
+    const data = await getSongUrl(
+      video.id,
+      video?.richThumbnail?.url || "",
+      isGetRelatedSongs
+    );
+    if (!data.url) {
+      return null
+    }
+
+    downloadAndMove(data.url, video, data.image_url, data.related_songs);
+
+    return video
+  }
+);
+
 export const playNextAsync = createAsyncThunk(
   "songPlayer/playNext",
   async (_, { dispatch, getState }) => {
     const state = getState() as RootState;
-    const queue = state.songPlayer.queue || [];
-    if (queue.length > 0) {
-      const songToPlay = queue[0];
-      dispatch(removeSongFromQueue(songToPlay.id));
+    const songToPlay = state.songPlayer.nextSong;
+    if (songToPlay) {
       dispatch(addToPlayedSongs(songToPlay));
-      await dispatch(setSongAsync(songToPlay));
+      dispatch(setSongAsync(songToPlay));
     }
   }
 );
@@ -126,9 +182,10 @@ export const playPreviousAsync = createAsyncThunk(
     const state = getState() as RootState;
     const playedSongs = state.songPlayer.playedSongs || [];
     if (playedSongs.length > 0) {
-      const songToPlay = playedSongs[playedSongs.length - 1];
-      dispatch(removeSongFromQueue(songToPlay.id));
-      dispatch(addToPlayedSongs(songToPlay));
+      const songToPlay = playedSongs.at(-1) || null;
+      if (!songToPlay) {
+        return;
+      }
       await dispatch(setSongAsync(songToPlay));
     }
   }

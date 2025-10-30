@@ -31,6 +31,18 @@ def getVideoDetails(video_id: str) -> dict | None:
         print(f"Error getting video details: {e}")
         return None
 
+def get_high_image_url(video_id: dict) -> str:
+    try:
+        video_details = getVideoDetails(video_id)
+        thumbnails = video_details.get("videoDetails", {}).get("thumbnail", {}).get("thumbnails", [])
+        if not thumbnails:
+            return None
+        # Get the one with maximum width (safest approach)
+        image_url = max(thumbnails, key=lambda t: t.get("width", 0)).get("url")
+        return image_url
+    except:
+        return None
+
 
 def getYoutubeMusicUrl(videoId: str, max_attempts: int = 10) -> Optional[str]:
     

@@ -3,7 +3,7 @@ import { AppDispatch, RootState } from "@/redux/store";
 import { setSongAsync } from "@/redux/thunks/songThunk";
 import { Video } from "@/types/song";
 import React, { useEffect } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -11,13 +11,13 @@ import Animated, {
 } from "react-native-reanimated";
 import { useDispatch, useSelector } from "react-redux";
 import SongTileMenu from "./SongTileMenu";
+import FastImage from "react-native-fast-image";
 
 const SongTile = ({ data }: { data: Video }) => {
   const { currentSong } = useSelector((state: RootState) => state.songPlayer);
   const translateX = useSharedValue(-20);
   const opacity = useSharedValue(0);
   const dispatch = useDispatch<AppDispatch>();
-
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [{ translateX: translateX.value }],
@@ -38,8 +38,8 @@ const SongTile = ({ data }: { data: Video }) => {
         onPress={handlePlay}
         className="flex flex-row items-center justify-center"
       >
-        <Image
-          source={{ uri: data.thumbnails?.at(-1).url }}
+        <FastImage
+          source={{ uri: data.richThumbnail?.url }}
           className={cn("w-[60px] h-[60px] rounded-lg", {
             "border-2 border-[#16a34a]": currentSong?.video?.id === data.id,
           })}
