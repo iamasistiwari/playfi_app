@@ -115,7 +115,6 @@ def searchSongs(request):
         return Response(
             create_response(True, "Feteched from cache", cached_data), status=status.HTTP_200_OK
         )
-
     try:
         results = youtubeSearch(q)
         cache.set(cache_key, results, timeout=60 * 60 * 1 * 5)  # Cache for 1 hour

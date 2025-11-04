@@ -32,8 +32,6 @@ def get_redis_client():
         )
     return redis_client
 
-
-
 def fetch_320kbps(url: str) -> str:
     headers = {"User-Agent": "Mozilla/5.0"}
     res = requests.get(url, headers=headers)
@@ -179,7 +177,7 @@ def youtubeSearch(query: str) -> List[YoutubeVideoType]:
                 "type": video.get("videoType", ""),
                 "id": video.get("videoId", ""),
                 "title": video.get("title", ""),
-                "publishedTime": str(video.get("year") or ""),
+                "publishedTime": str(video.get("year", "")),
                 "duration": video.get("duration", ""),
                 "viewCount": {"text": video.get("views", "0 views"), "short": None},
                 "thumbnails": video.get("thumbnails", []),
@@ -194,22 +192,30 @@ def youtubeSearch(query: str) -> List[YoutubeVideoType]:
                     "title": video.get("title", ""),
                     "duration": video.get("duration", "")
                 },
-                "link": f"https://music.youtube.com/watch?v={video.get('videoId','')}"
+                "link": f"https://music.youtube.com/watch?v={video.get('videoId', '')}"
             }
 
             validated = YoutubeVideoType.model_validate(mapped_video)
             validated_videos.append(validated.model_dump()) 
 
         except Exception as e:
+            print(f"Error processing video: {e}")
             continue
+    
     # Deduplicate by video ID
-    seen_ids = set[Any]()
+    seen_ids: set[str] = set()
     for vid in validated_videos:
         if vid["id"] not in seen_ids:
             unique_videos.append(vid)
             seen_ids.add(vid["id"])
-    redis_client.lpush("songs_queue", json.dumps(seen_ids))
-    redis_client.lpush("image_url_set", json.dumps(seen_ids))
+    
+    # Store video IDs in Redis (convert set to list for JSON serialization)
+    try:
+        redis_client.lpush("songs_queue", json.dumps(list(seen_ids)))
+        redis_client.lpush("image_url_set", json.dumps(list(seen_ids)))
+    except Exception as e:
+        print(f"Redis error: {e}")
+    
     return unique_videos
 
 def getVideoDetails(video_id: str) -> dict:
