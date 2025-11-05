@@ -37,7 +37,6 @@ def playSong(request):
             )
 
         redis_client = get_redis_client()
-        redis_client.lpush("image_url", songId)
 
         permenant_cache_key  = f"permenant_url:{songId}"
         permenant_cached_data = redis_client.get(permenant_cache_key)

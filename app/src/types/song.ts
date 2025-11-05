@@ -61,5 +61,4 @@ export interface Thumbnail {
 export interface Song {
   video: Video;
   musicUrl: string;
-  image_url: string | null;
 }

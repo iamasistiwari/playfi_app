@@ -28,43 +28,15 @@ async function removeDownloadedSong(video: Video) {
 async function downloadAndMove(
   musicUrl: string,
   video: Video,
-  image_url: string | null,
-  relatedSongs: Video[] | null
 ) {
   const tempFileUri = `${FileSystem.cacheDirectory}${video.id}_temp_audio.mp4`;
   const finalUri = `${FileSystem.documentDirectory}${video.id}.mp4`;
   const dispatch = useDispatch<AppDispatch>();
-  const tempImageUri = `${FileSystem.cacheDirectory}${video.id}_temp_image.jpg`;
-  const finalImageUri = `${FileSystem.documentDirectory}${video.id}.jpg`;
   try {
-    // caching the related songs
-    if (relatedSongs) {
-      await AsyncStorage.setItem(
-        `song_related_${video.id}`,
-        JSON.stringify(relatedSongs)
-      );
-    }
-
-    // caching the image url
-    // download image also
-    if (image_url) {
-      const oldFile = await FileSystem.getInfoAsync(finalImageUri);
-      if (oldFile.exists) {
-        await FileSystem.deleteAsync(finalImageUri, { idempotent: true });
-      }
-      // download image
-      const res = await FileSystem.downloadAsync(image_url, tempImageUri);
-      // move image to permanent storage
-      await FileSystem.moveAsync({
-        from: res.uri,
-        to: finalImageUri,
-      });
-    }
-
-    // Delete old file if exists
-    const oldFile = await FileSystem.getInfoAsync(finalUri);
-    if (oldFile.exists) {
-      await FileSystem.deleteAsync(finalUri, { idempotent: true });
+    // Delete old cache file if exists
+    const oldCacheFile = await FileSystem.getInfoAsync(tempFileUri);
+    if (oldCacheFile.exists) {
+      await FileSystem.deleteAsync(tempFileUri, { idempotent: true });
     }
 
     // Step 1: Download to temp
@@ -107,7 +79,6 @@ export const setSongAsync = createAsyncThunk<SetSongResult, Video>(
     const isGetRelatedSongs = state.songPlayer.queue.length < 1;
     const data = await getSongUrl(
       video.id,
-      video?.richThumbnail?.url || "",
       isGetRelatedSongs
     );
     if (!data.url) {
@@ -118,13 +89,12 @@ export const setSongAsync = createAsyncThunk<SetSongResult, Video>(
       };
     }
 
-    downloadAndMove(data.url, video, data.image_url, data.related_songs);
+    downloadAndMove(data.url, video);
 
     return {
       song: {
         video,
         musicUrl: data.url,
-        image_url: data.image_url,
       },
       relatedSongs: data.related_songs || null,
       error: null,
@@ -151,14 +121,13 @@ export const setNextSongAsync = createAsyncThunk<Video | null>(
     const isGetRelatedSongs = state.songPlayer.queue.length < 1;
     const data = await getSongUrl(
       video.id,
-      video?.richThumbnail?.url || "",
       isGetRelatedSongs
     );
     if (!data.url) {
       return null
     }
 
-    downloadAndMove(data.url, video, data.image_url, data.related_songs);
+    downloadAndMove(data.url, video);
 
     return video
   }

@@ -17,7 +17,12 @@ import {
   Pressable,
   Modal,
 } from "react-native";
-import { Gesture, GestureDetector, GestureHandlerRootView, ScrollView } from "react-native-gesture-handler";
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+  ScrollView,
+} from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -152,7 +157,7 @@ const Song = () => {
               <View style={styles.albumArtSection}>
                 <View style={styles.albumArtWrapper}>
                   <SongImage
-                    url={currentSong?.image_url}
+                    url={currentSong?.video?.richThumbnail?.url || ""}
                     width={320}
                     height={320}
                   />
@@ -327,7 +332,7 @@ const QueueBottomSheet: React.FC<QueueBottomSheetProps> = ({
     .failOffsetX([-30, 30])
     .minDistance(0)
     .onUpdate((event) => {
-      'worklet';
+      "worklet";
       // Only allow downward drag (closing)
       if (event.translationY > 0) {
         queueGestureTranslateY.value = event.translationY * 0.8;
@@ -335,7 +340,7 @@ const QueueBottomSheet: React.FC<QueueBottomSheetProps> = ({
       }
     })
     .onEnd((event) => {
-      'worklet';
+      "worklet";
       if (event.translationY > 120 || event.velocityY > 600) {
         translateY.value = withSpring(SCREEN_HEIGHT, {
           velocity: event.velocityY,
@@ -403,11 +408,7 @@ const QueueBottomSheet: React.FC<QueueBottomSheetProps> = ({
                     height={56}
                   />
                   <View style={styles.nowPlayingIndicator}>
-                    <Ionicons
-                      name="musical-notes"
-                      size={20}
-                      color="#1DB954"
-                    />
+                    <Ionicons name="musical-notes" size={20} color="#1DB954" />
                   </View>
                 </View>
                 <View style={styles.nowPlayingInfo}>

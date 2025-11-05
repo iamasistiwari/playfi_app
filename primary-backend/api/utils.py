@@ -118,7 +118,7 @@ def getRelatedSong(video_id: str) -> List[YoutubeVideoType]:
                     break
         recomended_videos = []
         if contents:
-            for item in contents:
+            for item in contents[:5]:
                 rich_thumbnail = item["thumbnails"][-1] if item.get("thumbnails") else None,
 
                 # Update richThumbnail dimensions if it exists
@@ -150,7 +150,6 @@ def getRelatedSong(video_id: str) -> List[YoutubeVideoType]:
                     "link": f"https://music.youtube.com/watch?v={item.get('videoId','')}"
                 }
                 recomended_videos.append(video)
-                redis_client.lpush("image_url", item.get("videoId", ""))
         return recomended_videos
 
     except Exception as e:
@@ -225,7 +224,6 @@ def youtubeSearch(query: str) -> List[YoutubeVideoType]:
     # Store video IDs in Redis (convert set to list for JSON serialization)
     try:
         redis_client.lpush("songs_queue", json.dumps(list(seen_ids)))
-        redis_client.lpush("image_url_set", json.dumps(list(seen_ids)))
     except Exception as e:
         print(f"Redis error: {e}")
     
