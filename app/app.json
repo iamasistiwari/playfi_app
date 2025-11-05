@@ -3,14 +3,17 @@
     "scheme": "acme",
     "userInterfaceStyle": "automatic",
     "orientation": "default",
+    "splash": {
+      "image": "./app.jpg",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
     "web": {
       "output": "static"
     },
     "ios": {
       "infoPlist": {
-        "UIBackgroundModes": [
-          "audio"
-        ]
+        "UIBackgroundModes": ["audio"]
       },
       "bundleIdentifier": "com.iamasistiwari.app"
     },
@@ -52,7 +55,7 @@
       ]
     ],
     "name": "PlayFi",
-    "slug": "playfi",
+    "slug": "app",
     "extra": {
       "router": {
         "origin": "https://n"

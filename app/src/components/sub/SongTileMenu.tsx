@@ -1,54 +1,48 @@
-import { View, Pressable, ScrollView, Text } from "react-native";
-import React, { useEffect, useState } from "react";
+import { View, Pressable, StyleSheet } from "react-native";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
-import { Menu } from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
-import { MaterialIcons } from "@expo/vector-icons";
 import { addSongToQueue, removeSongFromQueue } from "@/redux/song-player";
 import { Video } from "@/types/song";
-import { CustomButton } from "./CustomButton";
-import CustomPortal from "./CustomPortal";
-import CreatePlaylist from "./CreatePlaylist";
-import {
-  fetchSinglePlaylistAsync,
-} from "@/redux/thunks/playlistThunk";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { fetchSinglePlaylistAsync } from "@/redux/thunks/playlistThunk";
 import { addOrRemoveSongFromPlaylist } from "@/actions/playlist";
 import { handleLikeSong } from "@/redux/playlist-slice";
+import SongMenuBottomSheet from "./SongMenuBottomSheet";
+import PlaylistBottomSheet from "./PlaylistBottomSheet";
 
 interface Props {
   video: Video;
 }
 
 const SongTileMenuComponent: React.FC<Props> = ({ video }: Props) => {
+  const [isSongPresent, setIsSongPresent] = useState<Map<string, boolean>>(new Map());
+  const [addToPlaylistDialogVisible, setaddToPlaylistDialogVisible] = useState(false);
+  const [menuVisible, setmenuVisible] = useState(false);
+  const [songActionLoading, setSongActionLoading] = useState<boolean[]>([]);
 
-  const [isSongPresent, setIsSongPresent] = useState<Map<string, boolean>>();
+  const dispatch = useDispatch<AppDispatch>();
 
   const { queue = [] } = useSelector((state: RootState) => state.songPlayer);
-
   const { userPlaylists, loading, likedSongsPlaylist } = useSelector(
     (state: RootState) => state.playlist
   );
 
-  const songInQueue = queue.some((item) => item.id === video.id);
-
-  const [addToPlaylistDialogVisible, setaddToPlaylistDialogVisible] =
-    useState(false);
-
-  const [menuVisible, setmenuVisible] = useState(false);
-
-  const dispatch = useDispatch<AppDispatch>();
-
-  const [songActionLoading, setSongActionLoading] = useState<boolean[]>(
-    Array(userPlaylists.length).fill(false)
+  // Memoize expensive computations
+  const songInQueue = useMemo(
+    () => queue.some((item) => item.id === video.id),
+    [queue, video.id]
   );
 
-  const isLiked = likedSongsPlaylist.songs.some((item) => item.id === video.id);
+  const isLiked = useMemo(
+    () => likedSongsPlaylist.songs.some((item) => item.id === video.id),
+    [likedSongsPlaylist.songs, video.id]
+  );
 
+  // Update song presence map only when necessary
   useEffect(() => {
     if (userPlaylists.length > 0 && !loading) {
-      const map: Map<string, boolean> = new Map();
+      const map = new Map<string, boolean>();
       userPlaylists.forEach((playlist) => {
         map.set(
           playlist.id,
@@ -56,147 +50,105 @@ const SongTileMenuComponent: React.FC<Props> = ({ video }: Props) => {
         );
       });
       setIsSongPresent(map);
+      setSongActionLoading(Array(userPlaylists.length).fill(false));
     }
-  }, [userPlaylists, loading]);
+  }, [userPlaylists.length, loading]);
+
+  // Memoize callbacks
+  const handleMenuOpen = useCallback(() => {
+    setmenuVisible(true);
+  }, []);
+
+  const handleMenuClose = useCallback(() => {
+    setmenuVisible(false);
+  }, []);
+
+  const handleLike = useCallback(async () => {
+    dispatch(handleLikeSong(video));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    setmenuVisible(false);
+  }, [dispatch, video]);
+
+  const handleQueue = useCallback(async () => {
+    if (songInQueue) {
+      dispatch(removeSongFromQueue(video.id));
+    } else {
+      dispatch(addSongToQueue(video));
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    setmenuVisible(false);
+  }, [dispatch, songInQueue, video]);
+
+  const handleOpenPlaylistDialog = useCallback(() => {
+    setaddToPlaylistDialogVisible(true);
+    setmenuVisible(false);
+  }, []);
+
+  const handleClosePlaylistDialog = useCallback(() => {
+    setaddToPlaylistDialogVisible(false);
+  }, []);
+
+  const handlePlaylistPress = useCallback(
+    async (playlistId: string, index: number) => {
+      setSongActionLoading(
+        songActionLoading.map((item, i) => (i === index ? true : item))
+      );
+      const isPresent = isSongPresent?.get(playlistId);
+      await addOrRemoveSongFromPlaylist(isPresent, playlistId, video);
+      dispatch(
+        fetchSinglePlaylistAsync({
+          playlistId: playlistId as string,
+          fresh: true,
+        })
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setSongActionLoading(
+        songActionLoading.map((item, i) => (i === index ? false : item))
+      );
+    },
+    [songActionLoading, isSongPresent, video, dispatch]
+  );
+
+  const handleCreatePlaylist = useCallback(() => {
+    // Implement create playlist logic
+    console.log("Create playlist");
+  }, []);
 
   return (
     <View>
-      <Menu
+      <Pressable onPress={handleMenuOpen} style={styles.menuButton}>
+        <Ionicons name="ellipsis-vertical" size={28} color="#d4d4d4" />
+      </Pressable>
+
+      <SongMenuBottomSheet
         visible={menuVisible}
-        onDismiss={() => setmenuVisible(false)}
-        anchor={
-          <Pressable
-            onPress={() => {
-              setmenuVisible(true);
-            }}
-          >
-            <Ionicons
-              name="ellipsis-vertical"
-              size={28}
-              color="#d4d4d4"
-              style={{ marginHorizontal: 12 }}
-            />
-          </Pressable>
-        }
-      >
-        <Menu.Item
-          onPress={async () => {
-            dispatch(handleLikeSong(video));
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            setmenuVisible(false);
-          }}
-          leadingIcon={() =>
-            isLiked ? (
-              <Ionicons name="heart" size={24} color="#ef4444" />
-            ) : (
-              <Ionicons name="heart-outline" size={24} color="#ef4444" />
-            )
-          }
-          title={isLiked ? "Remove" : "Like"}
-        />
-        <Menu.Item
-          onPress={async () => {
-            if (songInQueue) {
-              dispatch(removeSongFromQueue(video.id));
-            } else {
-              dispatch(addSongToQueue(video));
-            }
-            await new Promise((resolve) => setTimeout(resolve, 300));
-            setmenuVisible(false);
-          }}
-          leadingIcon={() => (
-            <MaterialIcons name="queue-music" size={24} color="#16a34a" />
-          )}
-          title={songInQueue ? "Pop from Queue" : "Add to Queue"}
-        />
-        <Menu.Item
-          onPress={() => {
-            setaddToPlaylistDialogVisible(true);
-            setmenuVisible(false);
-          }}
-          leadingIcon={() => (
-            <MaterialIcons name="playlist-add" size={24} color="#16a34a" />
-          )}
-          title="Playlists Actions"
-        />
-        
-      </Menu>
-      {/* add to playlist dialog */}
-      <CustomPortal
+        onClose={handleMenuClose}
+        video={video}
+        isLiked={isLiked}
+        songInQueue={songInQueue}
+        onLike={handleLike}
+        onQueue={handleQueue}
+        onOpenPlaylists={handleOpenPlaylistDialog}
+      />
+
+      <PlaylistBottomSheet
         visible={addToPlaylistDialogVisible}
-        handleClose={() => setaddToPlaylistDialogVisible(false)}
-        dialogTitle="Playlists Actions"
-        dialogContent={
-          <View>
-            <ScrollView
-              showsVerticalScrollIndicator={true}
-              style={{ minHeight:50, maxHeight: 150, gap:4 }}
-              indicatorStyle="white"
-              persistentScrollbar={true}
-            >
-              {userPlaylists.length === 0 ? (<View>
-                <Text className="text-center text-neutral-500 my-4">
-                  No Playlists Found. Create one!
-                </Text>
-              </View>): (
-                userPlaylists.map((playlist, index) => (
-                  <CustomButton
-                    title={playlist.playlistName}
-                    key={playlist.id}
-                    variant={"ghost"}
-                    loading={songActionLoading[index]}
-                    icon={
-                      isSongPresent?.get(playlist.id) ? (
-                        <FontAwesome
-                          name="check-circle"
-                          size={24}
-                          color="green"
-                        />
-                      ) : (
-                        <Ionicons
-                          name="add-circle-outline"
-                          size={24}
-                          color="white"
-                        />
-                      )
-                    }
-                    className="justify-start border-b border-neutral-900 bg-neutral-800 my-1 p-2"
-                    onPress={async () => {
-                      setSongActionLoading(
-                        songActionLoading.map((item, i) =>
-                          i === index ? true : item
-                        )
-                      );
-                      const isPresent = isSongPresent?.get(playlist.id);
-                      await addOrRemoveSongFromPlaylist(
-                        isPresent,
-                        playlist.id,
-                        video
-                      );
-                      dispatch(
-                        fetchSinglePlaylistAsync({
-                          playlistId: playlist.id as string,
-                          fresh: true,
-                        })
-                      );
-                      await new Promise((resolve) => setTimeout(resolve, 2000))
-                      setSongActionLoading(
-                        songActionLoading.map((item, i) =>
-                          i === index ? false : item
-                        )
-                      );
-                    }}
-                  />
-                ))
-              )}
-            </ScrollView>
-            <CreatePlaylist />
-          </View>
-        }
+        onClose={handleClosePlaylistDialog}
+        playlists={userPlaylists}
+        songPresenceMap={isSongPresent}
+        loadingStates={songActionLoading}
+        onPlaylistPress={handlePlaylistPress}
+        onCreatePlaylist={handleCreatePlaylist}
       />
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  menuButton: {
+    paddingHorizontal: 12,
+  },
+});
 
 const SongTileMenu = React.memo(
   SongTileMenuComponent,

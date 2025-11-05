@@ -8,19 +8,107 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
+  withRepeat,
+  withSequence,
+  Easing,
 } from "react-native-reanimated";
 import { useDispatch, useSelector } from "react-redux";
 import SongTileMenu from "./SongTileMenu";
-import FastImage from "react-native-fast-image";
+import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
+import { usePlayer } from "@/hooks/usePlayer";
+
+// Animated Equalizer Bars Component
+const EqualizerBars = () => {
+  const bar1Height = useSharedValue(12);
+  const bar2Height = useSharedValue(16);
+  const bar3Height = useSharedValue(10);
+
+  useEffect(() => {
+    bar1Height.value = withRepeat(
+      withSequence(
+        withTiming(16, { duration: 400, easing: Easing.inOut(Easing.ease) }),
+        withTiming(8, { duration: 400, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+
+    bar2Height.value = withRepeat(
+      withSequence(
+        withTiming(20, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+        withTiming(12, { duration: 600, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+
+    bar3Height.value = withRepeat(
+      withSequence(
+        withTiming(14, { duration: 500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(6, { duration: 500, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  const bar1Style = useAnimatedStyle(() => ({
+    height: bar1Height.value,
+  }));
+
+  const bar2Style = useAnimatedStyle(() => ({
+    height: bar2Height.value,
+  }));
+
+  const bar3Style = useAnimatedStyle(() => ({
+    height: bar3Height.value,
+  }));
+
+  return (
+    <View style={styles.equalizerContainer}>
+      <Animated.View style={[styles.equalizerBar, bar1Style]} />
+      <Animated.View style={[styles.equalizerBar, bar2Style]} />
+      <Animated.View style={[styles.equalizerBar, bar3Style]} />
+    </View>
+  );
+};
 
 const SongTile = ({ data }: { data: Video }) => {
   const { currentSong } = useSelector((state: RootState) => state.songPlayer);
+  const { playerState } = usePlayer();
   const translateX = useSharedValue(-20);
   const opacity = useSharedValue(0);
   const dispatch = useDispatch<AppDispatch>();
+
+  const isCurrentSong = currentSong?.video?.id === data.id;
+  const isPlaying = isCurrentSong && playerState.isPlaying;
+
+  // Pulse animation for playing song
+  const pulseScale = useSharedValue(1);
+
+  useEffect(() => {
+    if (isPlaying) {
+      pulseScale.value = withRepeat(
+        withSequence(
+          withTiming(1.05, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+          withTiming(1, { duration: 800, easing: Easing.inOut(Easing.ease) })
+        ),
+        -1,
+        true
+      );
+    } else {
+      pulseScale.value = withTiming(1, { duration: 300 });
+    }
+  }, [isPlaying]);
+
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [{ translateX: translateX.value }],
+  }));
+
+  const pulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseScale.value }],
   }));
 
   useEffect(() => {
@@ -36,28 +124,66 @@ const SongTile = ({ data }: { data: Video }) => {
     <Animated.View style={animatedStyle}>
       <Pressable
         onPress={handlePlay}
-        className="flex flex-row items-center justify-center"
+        style={[
+          styles.container,
+          isCurrentSong && styles.containerActive,
+        ]}
       >
-        <FastImage
-          source={{ uri: data.richThumbnail?.url }}
-          className={cn("w-[60px] h-[60px] rounded-lg", {
-            "border-2 border-[#16a34a]": currentSong?.video?.id === data.id,
-          })}
-          resizeMode="cover"
-        />
+        {/* Album Art */}
+        <View style={styles.imageContainer}>
+          <Animated.View style={pulseStyle}>
+            <Image
+              source={{ uri: data?.thumbnails?.at(-1)?.url }}
+              style={styles.thumbnail}
+              contentFit="cover"
+              transition={200}
+              cachePolicy="disk"
+              priority="high"
+              recyclingKey={data?.thumbnails?.at(-1)?.url || ""}
+            />
+          </Animated.View>
+
+          {/* Playing Indicator Overlay */}
+          {isCurrentSong && (
+            <View style={styles.playingOverlay}>
+              {isPlaying ? (
+                <EqualizerBars />
+              ) : (
+                <Ionicons name="pause" size={20} color="#1DB954" />
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* Song Info */}
         <View style={styles.infoContainer}>
           <Text
             numberOfLines={1}
-            style={{
-              color: currentSong?.video?.id === data.id ? "#16a34a" : "#fff",
-              fontSize: 16,
-              fontWeight: "600",
-            }}
+            style={[
+              styles.title,
+              isCurrentSong && styles.titleActive,
+            ]}
           >
             {data.title}
           </Text>
-          <Text style={styles.channel}>{data.channel.name}</Text>
+          <Text
+            numberOfLines={1}
+            style={[
+              styles.channel,
+              isCurrentSong && styles.channelActive,
+            ]}
+          >
+            {data.channel.name}
+          </Text>
         </View>
+
+        {/* Right Side - Playing Icon or Menu */}
+        {isCurrentSong ? (
+          <View style={styles.playingIconContainer}>
+            <Ionicons name="volume-high" size={20} color="#1DB954" />
+          </View>
+        ) : null}
+
         <SongTileMenu video={data} />
       </Pressable>
     </Animated.View>
@@ -69,33 +195,79 @@ export default SongTile;
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    backgroundColor: "#121212",
-    padding: 10,
-    marginVertical: 6,
-    marginHorizontal: 12,
-    borderRadius: 12,
     alignItems: "center",
-    elevation: 2,
-    borderColor: "#fff",
+    backgroundColor: "transparent",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginVertical: 2,
+    gap: 12,
+  },
+  containerActive: {
+    backgroundColor: "rgba(29, 185, 84, 0.08)",
+  },
+  imageContainer: {
+    position: "relative",
   },
   thumbnail: {
-    width: 100,
-    height: 60,
-    borderRadius: 8,
+    width: 56,
+    height: 56,
+    borderRadius: 6,
+  },
+  playingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 6,
+  },
+  equalizerContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 3,
+    height: 20,
+  },
+  equalizerBar: {
+    width: 3,
+    backgroundColor: "#1DB954",
+    borderRadius: 2,
+  },
+  bar1: {
+    height: 12,
+  },
+  bar2: {
+    height: 16,
+  },
+  bar3: {
+    height: 10,
   },
   infoContainer: {
-    marginLeft: 10,
     flex: 1,
+    justifyContent: "center",
   },
-
+  title: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#fff",
+    marginBottom: 4,
+  },
+  titleActive: {
+    color: "#1DB954",
+    fontWeight: "700",
+  },
   channel: {
-    color: "#aaa",
     fontSize: 13,
-    marginTop: 2,
+    fontWeight: "500",
+    color: "rgba(255, 255, 255, 0.6)",
   },
-  views: {
-    color: "#888",
-    fontSize: 12,
-    marginTop: 2,
+  channelActive: {
+    color: "rgba(29, 185, 84, 0.8)",
+  },
+  playingIconContainer: {
+    marginRight: 4,
   },
 });

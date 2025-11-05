@@ -115,6 +115,12 @@ const songPlayerSlice = createSlice({
         }
       )
       .addCase(
+        setSongAsync.pending,
+        (state) => {
+          state.loading = true;
+        }
+      )
+      .addCase(
         setSongAsync.fulfilled,
         (state, action: PayloadAction<SetSongResult>) => {
           if (!action.payload.song) {
