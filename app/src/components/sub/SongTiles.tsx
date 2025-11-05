@@ -75,14 +75,22 @@ const EqualizerBars = () => {
 };
 
 const SongTile = ({ data }: { data: Video }) => {
-  const { currentSong } = useSelector((state: RootState) => state.songPlayer);
+  const songPlayerState = useSelector((state: RootState) => state.songPlayer);
   const { playerState } = usePlayer();
   const translateX = useSharedValue(-20);
   const opacity = useSharedValue(0);
   const dispatch = useDispatch<AppDispatch>();
 
+  const currentSong = songPlayerState?.currentSong;
+  const downloadProgress = songPlayerState?.downloadProgress || {};
+  const downloadedSongsMap = songPlayerState?.downloadedSongsMap || {};
+  const activeDownloads = songPlayerState?.activeDownloads || [];
+
   const isCurrentSong = currentSong?.video?.id === data.id;
   const isPlaying = isCurrentSong && playerState.isPlaying;
+  const isDownloaded = !!downloadedSongsMap[data.id];
+  const isDownloading = activeDownloads.includes(data.id);
+  const downloadProgressValue = downloadProgress[data.id] || 0;
 
   // Pulse animation for playing song
   const pulseScale = useSharedValue(1);
@@ -143,6 +151,18 @@ const SongTile = ({ data }: { data: Video }) => {
             />
           </Animated.View>
 
+          {/* Download Progress Bar */}
+          {isDownloading && (
+            <View style={styles.progressBarContainer}>
+              <View
+                style={[
+                  styles.progressBar,
+                  { width: `${downloadProgressValue}%` },
+                ]}
+              />
+            </View>
+          )}
+
           {/* Playing Indicator Overlay */}
           {isCurrentSong && (
             <View style={styles.playingOverlay}>
@@ -151,6 +171,13 @@ const SongTile = ({ data }: { data: Video }) => {
               ) : (
                 <Ionicons name="pause" size={20} color="#1DB954" />
               )}
+            </View>
+          )}
+
+          {/* Downloaded Indicator */}
+          {isDownloaded && !isCurrentSong && (
+            <View style={styles.downloadedBadge}>
+              <Ionicons name="arrow-down-circle" size={18} color="#1DB954" />
             </View>
           )}
         </View>
@@ -268,5 +295,28 @@ const styles = StyleSheet.create({
   },
   playingIconContainer: {
     marginRight: 4,
+  },
+  progressBarContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderBottomLeftRadius: 6,
+    borderBottomRightRadius: 6,
+    overflow: "hidden",
+  },
+  progressBar: {
+    height: "100%",
+    backgroundColor: "#1DB954",
+  },
+  downloadedBadge: {
+    position: "absolute",
+    bottom: 2,
+    right: 2,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    borderRadius: 10,
+    padding: 2,
   },
 });

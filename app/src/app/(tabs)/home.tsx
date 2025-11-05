@@ -5,6 +5,7 @@ import Navbar from "@/components/main/Navbar";
 import DummySearchBar from "@/components/sub/DummySearchBar";
 import Playlists from "@/components/main/Playlists";
 import SongPlayer from "@/components/main/SongPlayer";
+import DownloadedSongs from "@/components/main/DownloadedSongs";
 
 const Home = () => {
   return (
@@ -21,6 +22,7 @@ const Home = () => {
           <Navbar />
           <DummySearchBar />
           <Playlists />
+          <DownloadedSongs />
         </ScrollView>
         <SongPlayer />
       </LinearGradient>

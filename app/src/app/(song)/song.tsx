@@ -1,4 +1,3 @@
-import { CustomButton } from "@/components/sub/CustomButton";
 import Loader from "@/components/sub/Loader";
 import SongImage from "@/components/sub/SongImage";
 import SongSlider from "@/components/sub/SongSlider";
@@ -158,8 +157,10 @@ const Song = () => {
                 <View style={styles.albumArtWrapper}>
                   <SongImage
                     url={currentSong?.video?.richThumbnail?.url || ""}
-                    width={320}
-                    height={320}
+                    style={{
+                      width: 320,
+                      height: 320,
+                    }}
                   />
                 </View>
               </View>
@@ -403,9 +404,11 @@ const QueueBottomSheet: React.FC<QueueBottomSheetProps> = ({
               <View style={styles.nowPlayingCard}>
                 <View style={styles.nowPlayingImageContainer}>
                   <SongImage
-                    url={currentSong?.image_url}
-                    width={56}
-                    height={56}
+                    url={currentSong?.video?.thumbnails?.at(-1)?.url || ""}
+                    style={{
+                      width: 56,
+                      height: 56,
+                    }}
                   />
                   <View style={styles.nowPlayingIndicator}>
                     <Ionicons name="musical-notes" size={20} color="#1DB954" />
@@ -453,8 +456,10 @@ const QueueBottomSheet: React.FC<QueueBottomSheetProps> = ({
                   <View style={styles.queueItemImageContainer}>
                     <SongImage
                       url={song?.thumbnails?.at(-1)?.url || ""}
-                      width={48}
-                      height={48}
+                      style={{
+                        width: 48,
+                        height: 48,
+                      }}
                     />
                   </View>
                   <View style={styles.queueItemInfo}>

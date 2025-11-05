@@ -15,7 +15,7 @@ import PlaylistMenu from "@/components/sub/PlaylistMenu";
 import SongPlayer from "@/components/main/SongPlayer";
 
 const FullPlaylistView = () => {
-  const { currentPlaylist: playlist, loading } = useSelector(
+  const { currentPlaylist: playlist, loading, likedSongsPlaylist } = useSelector(
     (state: RootState) => state.playlist
   );
   const dispatch = useDispatch<AppDispatch>();
@@ -30,11 +30,18 @@ const FullPlaylistView = () => {
       (item) => item.id === currentSong?.video?.id
     );
     setIsPlayPlaylistPressed(isPress);
-  }, [playlist]);
+  }, [playlist, currentSong]);
 
   useEffect(() => {
     dispatch(setCurrentPlaylist(id as string));
-  }, []);
+  }, [id]);
+
+  // Re-sync currentPlaylist when likedSongsPlaylist changes (for liked songs page)
+  useEffect(() => {
+    if (id === "likedSongs") {
+      dispatch(setCurrentPlaylist(id as string));
+    }
+  }, [likedSongsPlaylist.songs.length]);
 
   if (loading) {
     return (

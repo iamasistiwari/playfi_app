@@ -5,6 +5,7 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import SongImage from "./SongImage";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const TILE_PADDING = 16;
@@ -17,11 +18,15 @@ type PlaylistTileProps = {
   isHorizontal?: boolean;
 };
 
-const PlaylistTile: React.FC<PlaylistTileProps> = ({ playlist, isHorizontal }) => {
+const PlaylistTile: React.FC<PlaylistTileProps> = ({
+  playlist,
+  isHorizontal,
+}) => {
   const router = useRouter();
   const imageUrl = playlist?.songs?.[0]?.thumbnails?.at(-1)?.url || "";
-  const isLikedSongs = playlist.playlistName.toLowerCase().includes("liked") ||
-                       playlist.playlistName.toLowerCase().includes("favorite");
+  const isLikedSongs =
+    playlist.playlistName.toLowerCase().includes("liked") ||
+    playlist.playlistName.toLowerCase().includes("favorite");
 
   if (isHorizontal) {
     return (
@@ -37,14 +42,10 @@ const PlaylistTile: React.FC<PlaylistTileProps> = ({ playlist, isHorizontal }) =
             <Ionicons name="heart" size={80} color="#fff" />
           </LinearGradient>
         ) : (
-          <Image
-            source={{ uri: imageUrl }}
+          <SongImage
+            url={imageUrl}
             style={styles.horizontalImage}
             contentFit="cover"
-            transition={200}
-            cachePolicy="disk"
-            priority="high"
-            recyclingKey={imageUrl}
           />
         )}
         <View style={styles.horizontalInfo}>

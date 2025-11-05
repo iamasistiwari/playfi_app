@@ -6,9 +6,9 @@
     "scheme": "acme",
     "userInterfaceStyle": "automatic",
     "orientation": "default",
-    "icon": "./app.jpg",
+    "icon": "./src/assets/app.jpg",
     "splash": {
-      "image": "./app.jpg",
+      "image": "./src/assets/app.jpg",
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
@@ -26,7 +26,7 @@
       "package": "com.iamasistiwari.app",
       "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./app.jpg",
+        "foregroundImage": "./src/assets/app.jpg",
         "backgroundColor": "#121212"
       },
       "permissions": [

@@ -2,53 +2,106 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import { getSongUrl } from "@/actions/songs";
 import { SetSongResult, Song, Video } from "@/types/song";
 import * as FileSystem from "expo-file-system";
-import { AppDispatch, RootState } from "../store";
+import { RootState } from "../store";
 import {
-  addToDownloadedSongs,
   addToPlayedSongs,
-  removeFromDownloadedSongs,
   removeSongFromQueue,
+  setDownloadedSongInfo,
+  removeDownloadedSongInfo,
+  setDownloadProgress,
+  addActiveDownload,
+  removeActiveDownload,
 } from "../song-player";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useDispatch } from "react-redux";
-
-async function removeDownloadedSong(video: Video) {
-  const finalUri = `${FileSystem.documentDirectory}${video.id}.mp4`;
-  const dispatch = useDispatch<AppDispatch>();
-  try {
-    // Delete old file if exists
-    const oldFile = await FileSystem.getInfoAsync(finalUri);
-    if (oldFile.exists) {
-      await FileSystem.deleteAsync(finalUri, { idempotent: true });
-    }
-    dispatch(removeFromDownloadedSongs(video.id));
-  } catch (error) {}
-}
 
 async function downloadAndMove(
   musicUrl: string,
   video: Video,
+  dispatch: any,
+  getState: any
 ) {
-  const tempFileUri = `${FileSystem.cacheDirectory}${video.id}_temp_audio.mp4`;
-  const finalUri = `${FileSystem.documentDirectory}${video.id}.mp4`;
-  const dispatch = useDispatch<AppDispatch>();
+  const state = getState() as RootState;
+  const videoId = video.id;
+
+  // Check if already downloaded
+  if (state.songPlayer.downloadedSongsMap[videoId]) {
+    const fileInfo = await FileSystem.getInfoAsync(
+      state.songPlayer.downloadedSongsMap[videoId].fileUri
+    );
+    if (fileInfo.exists) {
+      return; // Already downloaded, skip
+    }
+  }
+
+  // Check if already downloading
+  if (state.songPlayer.activeDownloads.includes(videoId)) {
+    return; // Already downloading, skip
+  }
+
+  const tempFileUri = `${FileSystem.cacheDirectory}${videoId}_temp_audio.mp4`;
+  const finalUri = `${FileSystem.documentDirectory}${videoId}.mp4`;
+
   try {
-    // Delete old cache file if exists
-    const oldCacheFile = await FileSystem.getInfoAsync(tempFileUri);
-    if (oldCacheFile.exists) {
+    // Mark as active download
+    dispatch(addActiveDownload(videoId));
+    dispatch(setDownloadProgress({ videoId, progress: 0 }));
+
+    // Check if temp file exists (partial download)
+    const tempFileInfo = await FileSystem.getInfoAsync(tempFileUri);
+    let resumable = false;
+
+    if (tempFileInfo.exists) {
+      // Can potentially resume, but expo-file-system doesn't support resume
+      // So we'll delete and start fresh
       await FileSystem.deleteAsync(tempFileUri, { idempotent: true });
     }
 
-    // Step 1: Download to temp
-    const res = await FileSystem.downloadAsync(musicUrl, tempFileUri);
+    // Step 1: Download to temp with progress tracking
+    const downloadResumable = FileSystem.createDownloadResumable(
+      musicUrl,
+      tempFileUri,
+      {},
+      (downloadProgress) => {
+        const progress =
+          downloadProgress.totalBytesWritten /
+          downloadProgress.totalBytesExpectedToWrite;
+        dispatch(
+          setDownloadProgress({
+            videoId,
+            progress: Math.min(progress * 100, 99), // Cap at 99% until moved
+          })
+        );
+      }
+    );
+
+    const res = await downloadResumable.downloadAsync();
+
+    if (!res) {
+      throw new Error("Download failed");
+    }
 
     // Step 2: Move to permanent storage
     await FileSystem.moveAsync({
       from: res.uri,
       to: finalUri,
     });
-    dispatch(addToDownloadedSongs(video));
-  } catch (error) {}
+
+    // Step 3: Update redux state
+    dispatch(setDownloadedSongInfo({ videoId, fileUri: finalUri, video }));
+    dispatch(setDownloadProgress({ videoId, progress: 100 }));
+
+    // Clean up
+    dispatch(removeActiveDownload(videoId));
+  } catch (error) {
+    console.error("Download error:", error);
+    // Clean up on error
+    dispatch(removeActiveDownload(videoId));
+
+    // Try to clean up temp file
+    try {
+      await FileSystem.deleteAsync(tempFileUri, { idempotent: true });
+    } catch {}
+  }
 }
 
 export const setSongAsync = createAsyncThunk<SetSongResult, Video>(
@@ -60,19 +113,17 @@ export const setSongAsync = createAsyncThunk<SetSongResult, Video>(
     dispatch(setNextSongAsync());
     const fileInfo = await FileSystem.getInfoAsync(fileUri);
     if (fileInfo.exists) {
-      const cachedImage = await AsyncStorage.getItem(`song_image_${video.id}`);
-      let relatedSongs = null;
-      if (state.songPlayer.queue.length < 1) {
-        relatedSongs = await AsyncStorage.getItem(`song_related_${video.id}`);
+      // Add to downloadedSongsMap if not already there
+      if (!state.songPlayer.downloadedSongsMap[video.id]) {
+        dispatch(setDownloadedSongInfo({ videoId: video.id, fileUri, video }));
       }
       // add to played songs
       return {
         song: {
           video,
           musicUrl: fileUri,
-          image_url: cachedImage ? cachedImage : video?.richThumbnail?.url,
         },
-        relatedSongs: relatedSongs ? JSON.parse(relatedSongs) : null,
+        relatedSongs: null,
         error: null,
       };
     }
@@ -89,7 +140,24 @@ export const setSongAsync = createAsyncThunk<SetSongResult, Video>(
       };
     }
 
-    downloadAndMove(data.url, video);
+    // Start download in background (don't await)
+    downloadAndMove(data.url, video, dispatch, getState);
+
+    // Check if file is already downloaded, use local file
+    const downloadedSongInfo = state.songPlayer.downloadedSongsMap[video.id];
+    if (downloadedSongInfo) {
+      const fileInfo = await FileSystem.getInfoAsync(downloadedSongInfo.fileUri);
+      if (fileInfo.exists) {
+        return {
+          song: {
+            video,
+            musicUrl: downloadedSongInfo.fileUri,
+          },
+          relatedSongs: data.related_songs || null,
+          error: null,
+        };
+      }
+    }
 
     return {
       song: {
@@ -104,16 +172,26 @@ export const setSongAsync = createAsyncThunk<SetSongResult, Video>(
 
 export const setNextSongAsync = createAsyncThunk<Video | null>(
   "songPlayer/setNextSongAsync",
-  async (_, { getState }) => {
+  async (_, { getState, dispatch }) => {
     const state = getState() as RootState;
     const video = state.songPlayer.queue[0];
 
     if (!video) {
       return null
     }
+
+    // Check if already downloaded in map
+    const downloadedSongInfo = state.songPlayer.downloadedSongsMap[video.id];
+    if (downloadedSongInfo) {
+      const fileInfo = await FileSystem.getInfoAsync(downloadedSongInfo.fileUri);
+      if (fileInfo.exists) {
+        return video;
+      }
+    }
+
     const fileUri = `${FileSystem.documentDirectory}${video.id}.mp4`;
 
-    // Check if already downloaded
+    // Check if already downloaded (fallback check)
     const fileInfo = await FileSystem.getInfoAsync(fileUri);
     if (fileInfo.exists) {
       return video;
@@ -127,7 +205,8 @@ export const setNextSongAsync = createAsyncThunk<Video | null>(
       return null
     }
 
-    downloadAndMove(data.url, video);
+    // Start download in background
+    downloadAndMove(data.url, video, dispatch, getState);
 
     return video
   }

@@ -136,7 +136,7 @@ def getRelatedSong(video_id: str) -> List[YoutubeVideoType]:
                     "duration": item.get("duration", ""),
                     "viewCount": {"text": item.get("views", "0 views"), "short": None},
                     "thumbnails": item.get("thumbnails", []),
-                    "richThumbnail": item["thumbnails"][-1] if item.get("thumbnails") else None,
+                    "richThumbnail":rich_thumbnail,
                     "channel": {
                         "name": format_title(item["artists"][0]["name"] if item.get("artists") else ""),
                         "id": item["artists"][0]["id"] if item.get("artists") else "",

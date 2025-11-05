@@ -52,6 +52,11 @@ const playlistSlice = createSlice({
       } else {
         state.likedSongsPlaylist.songs.push(action.payload);
       }
+
+      // Update currentPlaylist if it's the liked songs playlist
+      if (state.currentPlaylist?.id === "likedSongs") {
+        state.currentPlaylist = { ...state.likedSongsPlaylist };
+      }
     },
     resetPlaylistAfterSignout: (state) => {
       state.currentPlaylist = null;

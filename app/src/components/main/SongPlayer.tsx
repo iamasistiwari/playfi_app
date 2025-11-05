@@ -49,7 +49,7 @@ const SongPlayer = () => {
     .activeOffsetY([-15, 15])
     .failOffsetX([-30, 30])
     .onEnd((event) => {
-      'worklet';
+      "worklet";
       if (event.translationY < -80 && event.velocityY < -500) {
         runOnJS(handleOpenSong)();
       }
@@ -119,7 +119,6 @@ const SongPlayer = () => {
             />
           </Animated.View>
         </View>
-
       </>
     );
   };
@@ -161,7 +160,14 @@ const SongPlayer = () => {
                   {/* Left side - Song Info */}
                   <View style={styles.songInfoContainer}>
                     <View style={styles.albumArtContainer}>
-                      <SongImage url={currentSong?.image_url} width={52} height={52} />
+                      <SongImage
+                        url={currentSong?.video?.thumbnails?.at(-1)?.url || ""}
+                        style={{
+                          width: 52,
+                          height: 52,
+                          borderRadius: 8,
+                        }}
+                      />
                     </View>
                     <View style={styles.textContainer}>
                       <Text numberOfLines={1} style={styles.songTitle}>

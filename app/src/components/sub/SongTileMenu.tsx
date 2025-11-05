@@ -10,6 +10,7 @@ import { addOrRemoveSongFromPlaylist } from "@/actions/playlist";
 import { handleLikeSong } from "@/redux/playlist-slice";
 import CustomMenu, { MenuItem } from "./CustomMenu";
 import PlaylistBottomSheet from "./PlaylistBottomSheet";
+import { removeDownloadedSong } from "@/utils/downloadUtils";
 
 interface Props {
   video: Video;
@@ -23,10 +24,13 @@ const SongTileMenuComponent: React.FC<Props> = ({ video }: Props) => {
 
   const dispatch = useDispatch<AppDispatch>();
 
-  const { queue = [] } = useSelector((state: RootState) => state.songPlayer);
+  const songPlayerState = useSelector((state: RootState) => state.songPlayer);
   const { userPlaylists, loading, likedSongsPlaylist } = useSelector(
     (state: RootState) => state.playlist
   );
+
+  const queue = songPlayerState?.queue || [];
+  const downloadedSongsMap = songPlayerState?.downloadedSongsMap || {};
 
   // Memoize expensive computations
   const songInQueue = useMemo(
@@ -37,6 +41,11 @@ const SongTileMenuComponent: React.FC<Props> = ({ video }: Props) => {
   const isLiked = useMemo(
     () => likedSongsPlaylist.songs.some((item) => item.id === video.id),
     [likedSongsPlaylist.songs, video.id]
+  );
+
+  const isDownloaded = useMemo(
+    () => !!downloadedSongsMap[video.id],
+    [downloadedSongsMap, video.id]
   );
 
   // Update song presence map only when necessary
@@ -102,29 +111,47 @@ const SongTileMenuComponent: React.FC<Props> = ({ video }: Props) => {
     console.log("Create playlist");
   }, []);
 
-  const menuItems: MenuItem[] = useMemo(() => [
-    {
-      title: isLiked ? "Remove from Liked Songs" : "Add to Liked Songs",
-      onPress: handleLike,
-      icon: (
-        <Ionicons
-          name={isLiked ? "heart" : "heart-outline"}
-          size={26}
-          color={isLiked ? "#1DB954" : "#fff"}
-        />
-      ),
-    },
-    {
-      title: songInQueue ? "Remove from Queue" : "Add to Queue",
-      onPress: handleQueue,
-      icon: <MaterialIcons name="queue-music" size={26} color="#fff" />,
-    },
-    {
-      title: "Add to Playlist",
-      onPress: handleOpenPlaylistDialog,
-      icon: <MaterialIcons name="playlist-add" size={26} color="#fff" />,
-    },
-  ], [isLiked, songInQueue, handleLike, handleQueue, handleOpenPlaylistDialog]);
+  const handleRemoveDownload = useCallback(async () => {
+    await removeDownloadedSong(video, dispatch);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }, [dispatch, video]);
+
+  const menuItems: MenuItem[] = useMemo(() => {
+    const items = [
+      {
+        title: isLiked ? "Remove from Liked Songs" : "Add to Liked Songs",
+        onPress: handleLike,
+        icon: (
+          <Ionicons
+            name={isLiked ? "heart" : "heart-outline"}
+            size={26}
+            color={isLiked ? "#1DB954" : "#fff"}
+          />
+        ),
+      },
+      {
+        title: songInQueue ? "Remove from Queue" : "Add to Queue",
+        onPress: handleQueue,
+        icon: <MaterialIcons name="queue-music" size={26} color="#fff" />,
+      },
+      {
+        title: "Add to Playlist",
+        onPress: handleOpenPlaylistDialog,
+        icon: <MaterialIcons name="playlist-add" size={26} color="#fff" />,
+      },
+    ];
+
+    // Add remove download option if song is downloaded
+    if (isDownloaded) {
+      items.push({
+        title: "Remove Download",
+        onPress: handleRemoveDownload,
+        icon: <Ionicons name="trash-outline" size={26} color="#ff4444" />,
+      });
+    }
+
+    return items;
+  }, [isLiked, songInQueue, isDownloaded, handleLike, handleQueue, handleOpenPlaylistDialog, handleRemoveDownload]);
 
   return (
     <View>

@@ -43,5 +43,6 @@ export default function useFetch<T>(
     loading,
     refetch: fetchData,
     resetData,
+    setData,
   };
 }
