@@ -65,7 +65,7 @@ export default function Layout() {
   return (
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
-        <GestureHandlerRootView onLayout={onLayoutRootView}>
+        <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
           <StatusBar barStyle="light-content" backgroundColor="#000000" />
           <SafeScreen>
             <MenuProvider>

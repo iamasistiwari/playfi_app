@@ -10,7 +10,6 @@ import Animated, {
   Easing,
   runOnJS,
 } from "react-native-reanimated";
-import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -138,11 +137,9 @@ const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({
         <View style={styles.content}>
           {/* Logo */}
           <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
-            <Image
-              source={require("../../../app.jpg")}
-              style={styles.logo}
-              contentFit="cover"
-            />
+            <View style={styles.logoPlaceholder}>
+              <Ionicons name="musical-note" size={80} color="#1DB954" />
+            </View>
           </Animated.View>
 
           {/* App Name */}
@@ -195,9 +192,11 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
-  logo: {
+  logoPlaceholder: {
     width: 160,
     height: 160,
+    justifyContent: "center",
+    alignItems: "center",
   },
   appName: {
     fontSize: 36,

@@ -1,8 +1,12 @@
 {
   "expo": {
+    "name": "PlayFi",
+    "slug": "app",
+    "version": "1.0.0",
     "scheme": "acme",
     "userInterfaceStyle": "automatic",
     "orientation": "default",
+    "icon": "./app.jpg",
     "splash": {
       "image": "./app.jpg",
       "resizeMode": "contain",
@@ -15,17 +19,20 @@
       "infoPlist": {
         "UIBackgroundModes": ["audio"]
       },
-      "bundleIdentifier": "com.iamasistiwari.app"
+      "bundleIdentifier": "com.iamasistiwari.app",
+      "supportsTablet": true
     },
     "android": {
       "package": "com.iamasistiwari.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./app.jpg",
         "backgroundColor": "#121212"
       },
       "permissions": [
         "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.INTERNET"
       ]
     },
     "plugins": [
@@ -35,14 +42,16 @@
           "android": {
             "minSdkVersion": 26,
             "compileSdkVersion": 35,
-            "targetSdkVersion": 35
+            "targetSdkVersion": 35,
+            "enableProguardInReleaseBuilds": false,
+            "enableShrinkResourcesInReleaseBuilds": false
           }
         }
       ],
       [
         "expo-router",
         {
-          "origin": "https://n"
+          "origin": false
         }
       ],
       [
@@ -54,15 +63,14 @@
         }
       ]
     ],
-    "name": "PlayFi",
-    "slug": "app",
     "extra": {
       "router": {
-        "origin": "https://n"
+        "origin": false
       },
       "eas": {
         "projectId": "decfecd2-f376-4f02-be9a-390e06749c80"
       }
-    }
+    },
+    "jsEngine": "hermes"
   }
 }
