@@ -119,10 +119,10 @@ def getRelatedSong(video_id: str) -> List[YoutubeVideoType]:
         recomended_videos = []
         if contents:
             for item in contents[:5]:
-                rich_thumbnail = item["thumbnails"][-1] if item.get("thumbnails") else None,
+                rich_thumbnail = item["thumbnails"][-1] if item.get("thumbnails") else {},
 
                 # Update richThumbnail dimensions if it exists
-                if rich_thumbnail and isinstance(rich_thumbnail, dict) and rich_thumbnail.get("url"):
+                if rich_thumbnail and rich_thumbnail.get("url"):
                     rich_thumbnail = {
                         "url": update_image_dimensions(rich_thumbnail["url"], 400, 400),
                         "width": 400,
