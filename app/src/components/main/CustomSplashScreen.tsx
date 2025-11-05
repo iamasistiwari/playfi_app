@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { View, StyleSheet, Text } from "react-native";
+import { View, StyleSheet, Text, Image } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -29,13 +29,15 @@ const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({
   const iconScale = useSharedValue(0.8);
   const screenOpacity = useSharedValue(1);
 
-  const logoAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: logoOpacity.value,
-    transform: [
-      { scale: logoScale.value },
-      { rotate: `${logoRotate.value}deg` },
-    ],
-  }));
+  const logoAnimatedStyle = useAnimatedStyle(() => {
+    'worklet';
+    return {
+      opacity: logoOpacity.value,
+      transform: [
+        { scale: logoScale.value },
+      ],
+    };
+  });
 
   const textAnimatedStyle = useAnimatedStyle(() => ({
     opacity: textOpacity.value,
@@ -137,9 +139,11 @@ const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({
         <View style={styles.content}>
           {/* Logo */}
           <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
-            <View style={styles.logoPlaceholder}>
-              <Ionicons name="musical-note" size={80} color="#1DB954" />
-            </View>
+            <Image
+              source={require("../../assets/app.jpg")}
+              style={styles.logoImage}
+              resizeMode="cover"
+            />
           </Animated.View>
 
           {/* App Name */}
@@ -192,11 +196,10 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
-  logoPlaceholder: {
+  logoImage: {
     width: 160,
     height: 160,
-    justifyContent: "center",
-    alignItems: "center",
+    borderRadius: 80,
   },
   appName: {
     fontSize: 36,

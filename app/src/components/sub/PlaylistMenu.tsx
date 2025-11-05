@@ -1,12 +1,12 @@
 import { View, Text } from "react-native";
-import React, { useEffect, useState } from "react";
-import { Menu } from "react-native-paper";
+import React, { useEffect, useState, useMemo } from "react";
 import { CustomButton } from "./CustomButton";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
 import { MaterialIcons } from "@expo/vector-icons";
 import CustomPortal from "./CustomPortal";
+import CustomMenu, { MenuItem } from "./CustomMenu";
 import { changeVisiblity, deletePlaylist } from "@/actions/playlist";
 import {
   fetchSinglePlaylistAsync,
@@ -41,51 +41,48 @@ const PlaylistMenu = ({ playlistId }: { playlistId: string }) => {
     });
   }, [userPlaylists, playlistId]);
 
+  const menuItems: MenuItem[] = useMemo(() => {
+    if (!playlistDetail?.isUserPlaylist) return [];
+
+    return [
+      {
+        title: playlistDetail?.isGlobal ? "Make Private" : "Make Public",
+        onPress: () => {
+          setMakePrivatePublicDialogVisible(true);
+        },
+        icon: playlistDetail?.isGlobal ? (
+          <Entypo name="lock" size={24} color="#16a34a" />
+        ) : (
+          <Entypo name="globe" size={24} color="#16a34a" />
+        ),
+      },
+      {
+        title: "Delete Playlist",
+        onPress: () => {
+          setDeleteDialogVisible(true);
+        },
+        icon: <MaterialIcons name="delete" size={24} color="#16a34a" />,
+      },
+    ];
+  }, [playlistDetail?.isUserPlaylist, playlistDetail?.isGlobal]);
+
   return (
     <View>
-      <Menu
+      <CustomButton
+        loading={false}
+        variant={"ghost"}
+        className="p-0"
+        title=""
+        onPress={() => setMenuVisible(true)}
+        icon={<Ionicons name="options-outline" size={24} color="white" />}
+      />
+
+      <CustomMenu
         visible={menuVisible}
-        onDismiss={() => setMenuVisible(false)}
-        anchor={
-          <CustomButton
-            loading={false}
-            variant={"ghost"}
-            className="p-0"
-            title=""
-            onPress={() => setMenuVisible(true)}
-            icon={<Ionicons name="options-outline" size={24} color="white" />}
-          />
-        }
-      >
-        {playlistDetail?.isUserPlaylist && (
-          <Menu.Item
-            onPress={async () => {
-              setMenuVisible(false);
-              setMakePrivatePublicDialogVisible(true);
-            }}
-            title={playlistDetail?.isGlobal ? "Make Private" : "Make Public"}
-            leadingIcon={() =>
-              playlistDetail?.isGlobal ? (
-                <Entypo name="lock" size={24} color="#16a34a" />
-              ) : (
-                <Entypo name="globe" size={24} color="#16a34a" />
-              )
-            }
-          />
-        )}
-        {playlistDetail?.isUserPlaylist && (
-          <Menu.Item
-            onPress={() => {
-              setMenuVisible(false);
-              setDeleteDialogVisible(true);
-            }}
-            title={"Delete Playlist"}
-            leadingIcon={() => (
-              <MaterialIcons name="delete" size={24} color="#16a34a" />
-            )}
-          />
-        )}
-      </Menu>
+        onClose={() => setMenuVisible(false)}
+        items={menuItems}
+        title="Playlist Options"
+      />
 
       <CustomPortal
         visible={makePrivatePublicDialogVisible}

@@ -2,15 +2,22 @@ import { CustomButton } from "@/components/sub/CustomButton";
 import Loader from "@/components/sub/Loader";
 import SongImage from "@/components/sub/SongImage";
 import SongSlider from "@/components/sub/SongSlider";
-import CustomMenu from "@/components/sub/SongTileMenu";
+import SongTileMenu from "@/components/sub/SongTileMenu";
 import { usePlayer } from "@/hooks/usePlayer";
 import { AppDispatch, RootState } from "@/redux/store";
 import { playNextAsync, setSongAsync } from "@/redux/thunks/songThunk";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Text, View, StyleSheet, Dimensions, Pressable, ScrollView, Modal } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import {
+  Text,
+  View,
+  StyleSheet,
+  Dimensions,
+  Pressable,
+  Modal,
+} from "react-native";
+import { Gesture, GestureDetector, GestureHandlerRootView, ScrollView } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -30,11 +37,7 @@ const Song = () => {
   const { currentSong, loading, queue, nextSong } = useSelector(
     (state: RootState) => state.songPlayer
   );
-  const {
-    togglePlayPause,
-    playerState,
-    seekTo,
-  } = usePlayer();
+  const { togglePlayPause, playerState, seekTo } = usePlayer();
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const translateY = useSharedValue(SCREEN_HEIGHT);
@@ -131,118 +134,131 @@ const Song = () => {
             colors={["#2a2a2a", "#121212", "#000000"]}
             style={styles.gradient}
           >
-          <Animated.View style={[styles.handleIndicator, handleIndicatorStyle]} />
+            <Animated.View
+              style={[styles.handleIndicator, handleIndicatorStyle]}
+            />
 
-          <View style={styles.header}>
-            <Pressable style={styles.headerButton} onPress={handleDismiss}>
-              <Ionicons name="chevron-down" size={30} color="#fff" />
-            </Pressable>
-            <Text style={styles.headerTitle}>Now Playing</Text>
-            <View style={styles.menuButton}>
-              <CustomMenu video={currentSong?.video} />
-            </View>
-          </View>
-
-          <View style={styles.content}>
-            <View style={styles.albumArtSection}>
-              <View style={styles.albumArtWrapper}>
-                <SongImage
-                  url={currentSong?.image_url}
-                  width={320}
-                  height={320}
-                />
+            <View style={styles.header}>
+              <Pressable style={styles.headerButton} onPress={handleDismiss}>
+                <Ionicons name="chevron-down" size={30} color="#fff" />
+              </Pressable>
+              <Text style={styles.headerTitle}>Now Playing</Text>
+              <View style={styles.menuButton}>
+                <SongTileMenu video={currentSong?.video} />
               </View>
             </View>
 
-            <View style={styles.infoSection}>
-              <Text numberOfLines={2} style={styles.songTitle}>
-                {currentSong?.video?.title || "No title"}
-              </Text>
-              <Text numberOfLines={1} style={styles.artistName}>
-                {currentSong?.video?.channel?.name || "No channel"}
-              </Text>
-            </View>
-
-            <View style={styles.sliderSection}>
-              <SongSlider />
-            </View>
-
-            <View style={styles.controlsSection}>
-              <Pressable
-                style={styles.controlButton}
-                onPress={() => seekTo(0)}
-              >
-                <Ionicons name="play-skip-back" size={42} color="#fff" />
-              </Pressable>
-
-              {loading || playerState.isBuffering ? (
-                <View style={styles.playButtonContainer}>
-                  <Loader size={50} />
-                </View>
-              ) : (
-                <Pressable
-                  style={styles.playButtonContainer}
-                  onPress={togglePlayPause}
-                >
-                  <Ionicons
-                    name={playerState.isPlaying ? "pause-circle" : "play-circle"}
-                    size={85}
-                    color="#fff"
+            <View style={styles.content}>
+              <View style={styles.albumArtSection}>
+                <View style={styles.albumArtWrapper}>
+                  <SongImage
+                    url={currentSong?.image_url}
+                    width={320}
+                    height={320}
                   />
-                </Pressable>
-              )}
+                </View>
+              </View>
 
-              <Pressable
-                style={styles.controlButton}
-                onPress={() => dispatch(playNextAsync())}
-              >
-                <Ionicons name="play-skip-forward" size={42} color="#fff" />
-              </Pressable>
-            </View>
+              <View style={styles.infoSection}>
+                <Text numberOfLines={2} style={styles.songTitle}>
+                  {currentSong?.video?.title || "No title"}
+                </Text>
+                <Text numberOfLines={1} style={styles.artistName}>
+                  {currentSong?.video?.channel?.name || "No channel"}
+                </Text>
+              </View>
 
-            {/* Next Song Section */}
-            {upNextSong && (
-              <View style={styles.nextSongSection}>
+              <View style={styles.sliderSection}>
+                <SongSlider />
+              </View>
+
+              <View style={styles.controlsSection}>
                 <Pressable
-                  style={styles.nextSongHeader}
-                  onPress={openQueue}
+                  style={styles.controlButton}
+                  onPress={() => seekTo(0)}
                 >
-                  <Ionicons name="list" size={18} color="rgba(255, 255, 255, 0.7)" />
-                  <Text style={styles.nextSongLabel}>Up Next</Text>
-                  <View style={styles.queueCount}>
-                    <Text style={styles.queueCountText}>{queue.length}</Text>
-                  </View>
-                  <View style={{ flex: 1 }} />
-                  <Ionicons name="chevron-up" size={20} color="rgba(255, 255, 255, 0.5)" />
+                  <Ionicons name="play-skip-back" size={42} color="#fff" />
                 </Pressable>
+
+                {loading || playerState.isBuffering ? (
+                  <View style={styles.playButtonContainer}>
+                    <Loader size={50} />
+                  </View>
+                ) : (
+                  <Pressable
+                    style={styles.playButtonContainer}
+                    onPress={togglePlayPause}
+                  >
+                    <Ionicons
+                      name={
+                        playerState.isPlaying ? "pause-circle" : "play-circle"
+                      }
+                      size={85}
+                      color="#fff"
+                    />
+                  </Pressable>
+                )}
+
                 <Pressable
-                  style={styles.nextSongContainer}
+                  style={styles.controlButton}
                   onPress={() => dispatch(playNextAsync())}
                 >
-                  <View style={styles.nextSongImageContainer}>
-                    <SongImage
-                      url={upNextSong?.thumbnails?.at(-1)?.url || ""}
-                      width={48}
-                      height={48}
-                    />
-                    <View style={styles.nextSongOverlay}>
-                      <Ionicons name="play" size={16} color="#fff" />
-                    </View>
-                  </View>
-                  <View style={styles.nextSongInfo}>
-                    <Text numberOfLines={1} style={styles.nextSongTitle}>
-                      {upNextSong?.title || "Unknown"}
-                    </Text>
-                    <Text numberOfLines={1} style={styles.nextSongArtist}>
-                      {upNextSong?.channel?.name || "Unknown Artist"}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color="rgba(255, 255, 255, 0.5)" />
+                  <Ionicons name="play-skip-forward" size={42} color="#fff" />
                 </Pressable>
               </View>
-            )}
-          </View>
-        </LinearGradient>
+
+              {/* Next Song Section */}
+              {upNextSong && (
+                <View style={styles.nextSongSection}>
+                  <Pressable style={styles.nextSongHeader} onPress={openQueue}>
+                    <Ionicons
+                      name="list"
+                      size={18}
+                      color="rgba(255, 255, 255, 0.7)"
+                    />
+                    <Text style={styles.nextSongLabel}>Up Next</Text>
+                    <View style={styles.queueCount}>
+                      <Text style={styles.queueCountText}>{queue.length}</Text>
+                    </View>
+                    <View style={{ flex: 1 }} />
+                    <Ionicons
+                      name="chevron-up"
+                      size={20}
+                      color="rgba(255, 255, 255, 0.5)"
+                    />
+                  </Pressable>
+                  <Pressable
+                    style={styles.nextSongContainer}
+                    onPress={() => dispatch(playNextAsync())}
+                  >
+                    <View style={styles.nextSongImageContainer}>
+                      <SongImage
+                        url={upNextSong?.thumbnails?.at(-1)?.url || ""}
+                        width={48}
+                        height={48}
+                      />
+                      <View style={styles.nextSongOverlay}>
+                        <Ionicons name="play" size={16} color="#fff" />
+                      </View>
+                    </View>
+                    <View style={styles.nextSongInfo}>
+                      <Text numberOfLines={1} style={styles.nextSongTitle}>
+                        {upNextSong?.title || "Unknown"}
+                      </Text>
+                      <Text numberOfLines={1} style={styles.nextSongArtist}>
+                        {upNextSong?.channel?.name || "Unknown Artist"}
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color="rgba(255, 255, 255, 0.5)"
+                    />
+                  </Pressable>
+                </View>
+              )}
+            </View>
+          </LinearGradient>
         </Animated.View>
       </GestureDetector>
 
@@ -283,6 +299,19 @@ const QueueBottomSheet: React.FC<QueueBottomSheetProps> = ({
   backdropOpacity,
   onSongPress,
 }) => {
+  const queueGestureTranslateY = useSharedValue(0);
+  const scrollViewRef = React.useRef(null);
+
+  useEffect(() => {
+    if (visible) {
+      // Reset gesture value when opening
+      queueGestureTranslateY.value = 0;
+    } else {
+      // Reset gesture value when closing
+      queueGestureTranslateY.value = 0;
+    }
+  }, [visible]);
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
@@ -291,20 +320,27 @@ const QueueBottomSheet: React.FC<QueueBottomSheetProps> = ({
     opacity: backdropOpacity.value,
   }));
 
-  const queueGestureTranslateY = useSharedValue(0);
-
-  const queuePanGesture = Gesture.Pan()
+  // Separate gestures for drag area and content
+  const dragAreaPanGesture = Gesture.Pan()
+    .enabled(true)
+    .activeOffsetY([-5, 5])
+    .failOffsetX([-30, 30])
+    .minDistance(0)
     .onUpdate((event) => {
       'worklet';
+      // Only allow downward drag (closing)
       if (event.translationY > 0) {
-        queueGestureTranslateY.value = event.translationY;
-        translateY.value = event.translationY;
+        queueGestureTranslateY.value = event.translationY * 0.8;
+        translateY.value = event.translationY * 0.8;
       }
     })
     .onEnd((event) => {
       'worklet';
-      if (event.translationY > 150 || event.velocityY > 500) {
-        translateY.value = withTiming(SCREEN_HEIGHT, { duration: 250 });
+      if (event.translationY > 120 || event.velocityY > 600) {
+        translateY.value = withSpring(SCREEN_HEIGHT, {
+          velocity: event.velocityY,
+          damping: 50,
+        });
         backdropOpacity.value = withTiming(0, { duration: 200 });
         runOnJS(onClose)();
       } else {
@@ -325,96 +361,115 @@ const QueueBottomSheet: React.FC<QueueBottomSheetProps> = ({
       animationType="none"
       onRequestClose={onClose}
     >
-      <View style={styles.queueModalContainer}>
+      <GestureHandlerRootView style={styles.queueModalContainer}>
         <Animated.View style={[styles.queueBackdrop, backdropStyle]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         </Animated.View>
 
-        <GestureDetector gesture={queuePanGesture}>
-          <Animated.View style={[styles.queueSheet, animatedStyle]}>
+        <Animated.View style={[styles.queueSheet, animatedStyle]}>
+          <GestureDetector gesture={dragAreaPanGesture}>
             <View style={styles.queueDragArea}>
               <View style={styles.queueHandleBar} />
             </View>
+          </GestureDetector>
 
-            {/* Header */}
+          {/* Header */}
+          <GestureDetector gesture={dragAreaPanGesture}>
             <View style={styles.queueHeader}>
               <View style={styles.queueHeaderLeft}>
                 <Ionicons name="list" size={24} color="#fff" />
                 <Text style={styles.queueHeaderTitle}>Queue</Text>
                 <View style={styles.queueHeaderCount}>
-                  <Text style={styles.queueHeaderCountText}>{queue.length}</Text>
+                  <Text style={styles.queueHeaderCountText}>
+                    {queue.length}
+                  </Text>
                 </View>
               </View>
               <Pressable onPress={onClose} style={styles.queueCloseButton}>
                 <Ionicons name="close" size={28} color="#fff" />
               </Pressable>
             </View>
+          </GestureDetector>
 
-            {/* Current Song */}
-            {currentSong && (
-              <View style={styles.nowPlayingSection}>
-                <Text style={styles.nowPlayingLabel}>Now Playing</Text>
-                <View style={styles.nowPlayingCard}>
-                  <View style={styles.nowPlayingImageContainer}>
-                    <SongImage
-                      url={currentSong?.image_url}
-                      width={56}
-                      height={56}
+          {/* Current Song */}
+          {currentSong && (
+            <View style={styles.nowPlayingSection}>
+              <Text style={styles.nowPlayingLabel}>Now Playing</Text>
+              <View style={styles.nowPlayingCard}>
+                <View style={styles.nowPlayingImageContainer}>
+                  <SongImage
+                    url={currentSong?.image_url}
+                    width={56}
+                    height={56}
+                  />
+                  <View style={styles.nowPlayingIndicator}>
+                    <Ionicons
+                      name="musical-notes"
+                      size={20}
+                      color="#1DB954"
                     />
-                    <View style={styles.nowPlayingIndicator}>
-                      <Ionicons name="musical-notes" size={20} color="#1DB954" />
-                    </View>
                   </View>
-                  <View style={styles.nowPlayingInfo}>
-                    <Text numberOfLines={1} style={styles.nowPlayingTitle}>
-                      {currentSong?.video?.title || "Unknown"}
-                    </Text>
-                    <Text numberOfLines={1} style={styles.nowPlayingArtist}>
-                      {currentSong?.video?.channel?.name || "Unknown Artist"}
-                    </Text>
-                  </View>
+                </View>
+                <View style={styles.nowPlayingInfo}>
+                  <Text numberOfLines={1} style={styles.nowPlayingTitle}>
+                    {currentSong?.video?.title || "Unknown"}
+                  </Text>
+                  <Text numberOfLines={1} style={styles.nowPlayingArtist}>
+                    {currentSong?.video?.channel?.name || "Unknown Artist"}
+                  </Text>
                 </View>
               </View>
-            )}
+            </View>
+          )}
 
-            {/* Queue List */}
-            <ScrollView style={styles.queueList} showsVerticalScrollIndicator={false}>
-              <Text style={styles.queueListLabel}>Up Next</Text>
-              {queue.length === 0 ? (
-                <View style={styles.emptyQueue}>
-                  <Ionicons name="musical-notes-outline" size={48} color="rgba(255, 255, 255, 0.3)" />
-                  <Text style={styles.emptyQueueText}>No songs in queue</Text>
-                </View>
-              ) : (
-                queue.map((song, index) => (
-                  <Pressable
-                    key={`${song.id}-${index}`}
-                    style={styles.queueItem}
-                    onPress={() => onSongPress(song)}
-                  >
-                    <Text style={styles.queueItemNumber}>{index + 1}</Text>
-                    <View style={styles.queueItemImageContainer}>
-                      <SongImage
-                        url={song?.thumbnails?.at(-1)?.url || ""}
-                        width={48}
-                        height={48}
-                      />
-                    </View>
-                    <View style={styles.queueItemInfo}>
-                      <Text numberOfLines={1} style={styles.queueItemTitle}>
-                        {song?.title || "Unknown"}
-                      </Text>
-                      <Text numberOfLines={1} style={styles.queueItemArtist}>
-                        {song?.channel?.name || "Unknown Artist"}
-                      </Text>
-                    </View>
-                  </Pressable>
-                ))
-              )}
-            </ScrollView>
-          </Animated.View>
-        </GestureDetector>
-      </View>
+          {/* Queue List */}
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.queueList}
+            contentContainerStyle={{ paddingBottom: 20 }}
+            showsVerticalScrollIndicator={true}
+            nestedScrollEnabled={true}
+            bounces={true}
+          >
+            <Text style={styles.queueListLabel}>Up Next</Text>
+            {queue.length === 0 ? (
+              <View style={styles.emptyQueue}>
+                <Ionicons
+                  name="musical-notes-outline"
+                  size={48}
+                  color="rgba(255, 255, 255, 0.3)"
+                />
+                <Text style={styles.emptyQueueText}>No songs in queue</Text>
+              </View>
+            ) : (
+              queue.map((song, index) => (
+                <Pressable
+                  key={`${song.id}-${index}`}
+                  style={styles.queueItem}
+                  onPress={() => onSongPress(song)}
+                >
+                  <Text style={styles.queueItemNumber}>{index + 1}</Text>
+                  <View style={styles.queueItemImageContainer}>
+                    <SongImage
+                      url={song?.thumbnails?.at(-1)?.url || ""}
+                      width={48}
+                      height={48}
+                    />
+                  </View>
+                  <View style={styles.queueItemInfo}>
+                    <Text numberOfLines={1} style={styles.queueItemTitle}>
+                      {song?.title || "Unknown"}
+                    </Text>
+                    <Text numberOfLines={1} style={styles.queueItemArtist}>
+                      {song?.channel?.name || "Unknown Artist"}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))
+            )}
+          </ScrollView>
+        </Animated.View>
+      </GestureHandlerRootView>
     </Modal>
   );
 };
@@ -609,11 +664,14 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     maxHeight: SCREEN_HEIGHT * 0.85,
     paddingBottom: 40,
+    display: "flex",
+    flexDirection: "column",
   },
   queueDragArea: {
     width: "100%",
     paddingVertical: 12,
     alignItems: "center",
+    flexShrink: 0,
   },
   queueHandleBar: {
     width: 40,
@@ -629,6 +687,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255, 255, 255, 0.1)",
+    flexShrink: 0,
   },
   queueHeaderLeft: {
     flexDirection: "row",
@@ -659,6 +718,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255, 255, 255, 0.1)",
+    flexShrink: 0,
   },
   nowPlayingLabel: {
     fontSize: 13,
@@ -706,7 +766,7 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.7)",
   },
   queueList: {
-    maxHeight: SCREEN_HEIGHT * 0.5,
+    flex: 1,
     paddingHorizontal: 20,
   },
   queueListLabel: {

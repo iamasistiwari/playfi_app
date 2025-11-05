@@ -111,7 +111,6 @@ const songPlayerSlice = createSlice({
           }
           state.nextSong = action.payload;
           state.queue.shift();
-          state.loading = false;
         }
       )
       .addCase(

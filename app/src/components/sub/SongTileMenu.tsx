@@ -2,13 +2,13 @@ import { View, Pressable, StyleSheet } from "react-native";
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { addSongToQueue, removeSongFromQueue } from "@/redux/song-player";
 import { Video } from "@/types/song";
 import { fetchSinglePlaylistAsync } from "@/redux/thunks/playlistThunk";
 import { addOrRemoveSongFromPlaylist } from "@/actions/playlist";
 import { handleLikeSong } from "@/redux/playlist-slice";
-import SongMenuBottomSheet from "./SongMenuBottomSheet";
+import CustomMenu, { MenuItem } from "./CustomMenu";
 import PlaylistBottomSheet from "./PlaylistBottomSheet";
 
 interface Props {
@@ -18,7 +18,7 @@ interface Props {
 const SongTileMenuComponent: React.FC<Props> = ({ video }: Props) => {
   const [isSongPresent, setIsSongPresent] = useState<Map<string, boolean>>(new Map());
   const [addToPlaylistDialogVisible, setaddToPlaylistDialogVisible] = useState(false);
-  const [menuVisible, setmenuVisible] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
   const [songActionLoading, setSongActionLoading] = useState<boolean[]>([]);
 
   const dispatch = useDispatch<AppDispatch>();
@@ -54,19 +54,9 @@ const SongTileMenuComponent: React.FC<Props> = ({ video }: Props) => {
     }
   }, [userPlaylists.length, loading]);
 
-  // Memoize callbacks
-  const handleMenuOpen = useCallback(() => {
-    setmenuVisible(true);
-  }, []);
-
-  const handleMenuClose = useCallback(() => {
-    setmenuVisible(false);
-  }, []);
-
   const handleLike = useCallback(async () => {
     dispatch(handleLikeSong(video));
     await new Promise((resolve) => setTimeout(resolve, 100));
-    setmenuVisible(false);
   }, [dispatch, video]);
 
   const handleQueue = useCallback(async () => {
@@ -76,12 +66,10 @@ const SongTileMenuComponent: React.FC<Props> = ({ video }: Props) => {
       dispatch(addSongToQueue(video));
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
-    setmenuVisible(false);
   }, [dispatch, songInQueue, video]);
 
   const handleOpenPlaylistDialog = useCallback(() => {
     setaddToPlaylistDialogVisible(true);
-    setmenuVisible(false);
   }, []);
 
   const handleClosePlaylistDialog = useCallback(() => {
@@ -114,21 +102,41 @@ const SongTileMenuComponent: React.FC<Props> = ({ video }: Props) => {
     console.log("Create playlist");
   }, []);
 
+  const menuItems: MenuItem[] = useMemo(() => [
+    {
+      title: isLiked ? "Remove from Liked Songs" : "Add to Liked Songs",
+      onPress: handleLike,
+      icon: (
+        <Ionicons
+          name={isLiked ? "heart" : "heart-outline"}
+          size={26}
+          color={isLiked ? "#1DB954" : "#fff"}
+        />
+      ),
+    },
+    {
+      title: songInQueue ? "Remove from Queue" : "Add to Queue",
+      onPress: handleQueue,
+      icon: <MaterialIcons name="queue-music" size={26} color="#fff" />,
+    },
+    {
+      title: "Add to Playlist",
+      onPress: handleOpenPlaylistDialog,
+      icon: <MaterialIcons name="playlist-add" size={26} color="#fff" />,
+    },
+  ], [isLiked, songInQueue, handleLike, handleQueue, handleOpenPlaylistDialog]);
+
   return (
     <View>
-      <Pressable onPress={handleMenuOpen} style={styles.menuButton}>
+      <Pressable onPress={() => setMenuVisible(true)} style={styles.menuButton}>
         <Ionicons name="ellipsis-vertical" size={28} color="#d4d4d4" />
       </Pressable>
 
-      <SongMenuBottomSheet
+      <CustomMenu
         visible={menuVisible}
-        onClose={handleMenuClose}
-        video={video}
-        isLiked={isLiked}
-        songInQueue={songInQueue}
-        onLike={handleLike}
-        onQueue={handleQueue}
-        onOpenPlaylists={handleOpenPlaylistDialog}
+        onClose={() => setMenuVisible(false)}
+        items={menuItems}
+        title={video?.title}
       />
 
       <PlaylistBottomSheet
@@ -146,7 +154,7 @@ const SongTileMenuComponent: React.FC<Props> = ({ video }: Props) => {
 
 const styles = StyleSheet.create({
   menuButton: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
   },
 });
 

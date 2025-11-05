@@ -197,11 +197,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "transparent",
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 8,
-    marginVertical: 2,
-    gap: 12,
+    gap: 10,
   },
   containerActive: {
     backgroundColor: "rgba(29, 185, 84, 0.08)",

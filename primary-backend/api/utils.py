@@ -63,33 +63,17 @@ def getYTMusic() -> YTMusic:
         ytmusic = YTMusic()
     return ytmusic
 
-def format_sentence(sentence: str) -> str:
-    removable_words = [
-        "official", "audio", "lyrics", "music", "video", "clip", "latest", 
-        "song", "songs", "punjabi", "hindi", "new", "full", "hd", "ft", "lyric", "lyrics"
-    ]
-    # removable_words.extend([str(year) for year in range(2020, 2025)])
-    
-    if not sentence:
+def format_title(title: str) -> str:
+    if not title:
         return ""
+    # Remove everything from '(' onwards
+    title = title.split('(')[0]
     
-    # If the sentence contains Devanagari (Hindi) characters, return as-is
-    if re.search(r'[\u0900-\u097F]', sentence):
-        return sentence.strip()
+    # Strip whitespace and apply title case
+    title = title.strip().title()
+    
+    return title
 
-    # Remove special characters except spaces and alphanumerics
-    sentence = re.sub(r'[^a-zA-Z0-9\s]', '', sentence)
-
-    # Split into words and filter
-    words = sentence.split()
-    removable_set = set(word.lower() for word in removable_words)
-    filtered_words = [word for word in words if word.lower() not in removable_set]
-
-    # Capitalize and join
-    capitalized_words = [word.capitalize() for word in filtered_words]
-    finalSentence = " ".join(capitalized_words)
-
-    return finalSentence
 
 def getExpiryTimeout(music_url: str) -> int:
     try:
@@ -135,17 +119,26 @@ def getRelatedSong(video_id: str) -> List[YoutubeVideoType]:
         recomended_videos = []
         if contents:
             for item in contents:
+                rich_thumbnail = item["thumbnails"][-1] if item.get("thumbnails") else None,
+
+                # Update richThumbnail dimensions if it exists
+                if rich_thumbnail and isinstance(rich_thumbnail, dict) and rich_thumbnail.get("url"):
+                    rich_thumbnail = {
+                        "url": update_image_dimensions(rich_thumbnail["url"], 400, 400),
+                        "width": 400,
+                        "height": 400
+                    }
                 video = {
                     "type": "music",
                     "id": item.get("videoId", ""),
-                    "title": item.get("title", ""),
+                    "title": format_title(item.get("title", "")),
                     "publishedTime": str(item.get("year") or ""),
                     "duration": item.get("duration", ""),
                     "viewCount": {"text": item.get("views", "0 views"), "short": None},
                     "thumbnails": item.get("thumbnails", []),
                     "richThumbnail": item["thumbnails"][-1] if item.get("thumbnails") else None,
                     "channel": {
-                        "name": item["artists"][0]["name"] if item.get("artists") else "",
+                        "name": format_title(item["artists"][0]["name"] if item.get("artists") else ""),
                         "id": item["artists"][0]["id"] if item.get("artists") else "",
                         "thumbnails": [],
                         "link": ""
@@ -165,6 +158,16 @@ def getRelatedSong(video_id: str) -> List[YoutubeVideoType]:
         return None
     
 
+def update_image_dimensions(url: str, width: int, height: int) -> str:
+    pattern = r'w\d+-h\d+'
+    replacement = f'w{width}-h{height}'
+    
+    # Replace the pattern with new dimensions
+    updated_url = re.sub(pattern, replacement, url)
+    
+    return updated_url
+
+
 def youtubeSearch(query: str) -> List[YoutubeVideoType]:
     results = getYTMusic().search(query, filter="songs")
     validated_videos: List[YoutubeVideoType] = []
@@ -173,17 +176,27 @@ def youtubeSearch(query: str) -> List[YoutubeVideoType]:
 
     for video in results[:6]:  
         try:
+            rich_thumbnail = video["thumbnails"][-1] if video.get("thumbnails") else None
+
+            # Update richThumbnail dimensions if it exists
+            if rich_thumbnail and isinstance(rich_thumbnail, dict) and rich_thumbnail.get("url"):
+                rich_thumbnail = {
+                    "url": update_image_dimensions(rich_thumbnail["url"], 400, 400),
+                    "width": 400,
+                    "height": 400
+                }
+
             mapped_video = {
                 "type": video.get("videoType", ""),
                 "id": video.get("videoId", ""),
-                "title": video.get("title", ""),
+                "title": format_title(video.get("title", "")),
                 "publishedTime": str(video.get("year", "")),
                 "duration": video.get("duration", ""),
                 "viewCount": {"text": video.get("views", "0 views"), "short": None},
                 "thumbnails": video.get("thumbnails", []),
-                "richThumbnail": video["thumbnails"][-1] if video.get("thumbnails") else None,
+                "richThumbnail": rich_thumbnail,
                 "channel": {
-                    "name": video["artists"][0]["name"] if video.get("artists") else "",
+                    "name": format_title(video["artists"][0]["name"] if video.get("artists") else ""),
                     "id": video["artists"][0]["id"] if video.get("artists") else "",
                     "thumbnails": [],
                     "link": ""

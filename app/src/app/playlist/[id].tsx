@@ -1,5 +1,5 @@
 import { View, Text, FlatList } from "react-native";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { CustomButton } from "@/components/sub/CustomButton";
 import { Ionicons } from "@expo/vector-icons";
@@ -59,9 +59,9 @@ const FullPlaylistView = () => {
   }
 
   return (
-    <View className="px-4 pt-1 bg-primary min-h-[100vh]">
+    <View className=" pt-1 bg-primary min-h-[100vh]">
       {/* navbar part */}
-      <View className="h-16 flex-row items-center justify-between">
+      <View className="h-16 flex-row items-center justify-between px-4">
         <CustomButton
           loading={false}
           variant={"ghost"}
@@ -88,7 +88,7 @@ const FullPlaylistView = () => {
       </View>
 
       {/* second bar */}
-      <View className="flex-row items-center justify-between">
+      <View className="flex-row items-center justify-between px-4">
         <Text className="text-neutral-400 text-base font-medium">
           {playlist?.songs?.length} songs
         </Text>
@@ -136,11 +136,11 @@ const FullPlaylistView = () => {
       </View>
 
       {/* song list */}
-      <View className="h-[75vh] py-4">
+      <View className="h-[70vh] py-4 px-3">
         <FlatList
           data={playlist?.songs}
           keyExtractor={(item) => item.id}
-          ItemSeparatorComponent={() => <View style={{ height: 14 }} />}
+          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
           renderItem={({ item }) => <SongTile data={item} key={item.id} />}
           showsVerticalScrollIndicator={false}
         />
