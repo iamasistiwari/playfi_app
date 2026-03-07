@@ -11,7 +11,6 @@ module.exports = {
       max_memory_restart: '1024M',
       env: {
         DJANGO_SETTINGS_MODULE: 'core.settings',
-        OBJC_DISABLE_INITIALIZE_FORK_SAFETY: 'YES',
       },
     },
     {
