@@ -73,7 +73,7 @@ def playSong(request):
         redis_client.lpush("song_tasks", songId)  
         time.sleep(2)
         c = 0
-        while c < 10:
+        while c < 15:
             cached_data = redis_client.get(temp_cache_key)
             if cached_data:
                 return Response(

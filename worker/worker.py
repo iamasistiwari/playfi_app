@@ -48,7 +48,7 @@ def worker():
 
 def handleSongLink(video_id: str):
     musicUrl = utils.getYoutubeMusicUrl(video_id)
-    if not musicUrl or not musicUrl.endswith("="):
+    if not musicUrl:
         print(f"Failed to fetch music URL for {video_id}")
         r.lpush("failed_song_tasks", video_id)
         return

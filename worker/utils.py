@@ -1,17 +1,11 @@
 from typing import List, Optional
 from ytmusicapi import YTMusic
-from urllib.parse import urlparse, parse_qs, unquote
+from urllib.parse import urlparse, parse_qs
 import yt_dlp
 import time
 import subprocess
 import sys
-import time
-import requests
-from bs4 import BeautifulSoup
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 ytmusic: Optional[YTMusic] = None
 def getYTMusic() -> YTMusic:
@@ -44,152 +38,79 @@ def get_high_image_url(video_id: dict) -> str:
         return None
 
 
-def getYoutubeMusicUrl(videoId: str, max_attempts: int = 10) -> Optional[str]:
-    
-    for attempt in range(1, max_attempts + 1):
-        try:
-            if(attempt == 5):
+def getYoutubeMusicUrl(videoId: str, max_rounds: int = 4) -> Optional[str]:
+    concurrent = 3
+
+    for round_num in range(1, max_rounds + 1):
+        if round_num == 3:
+            try:
+                print("📦 Attempting to upgrade yt-dlp...")
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", "yt-dlp"])
+                print("✅ yt-dlp upgraded successfully")
+            except subprocess.CalledProcessError as e:
+                print(f"⚠️ Failed to upgrade yt-dlp: {e}")
+
+        with ThreadPoolExecutor(max_workers=concurrent) as executor:
+            futures = [executor.submit(_extractAudioUrl, videoId) for _ in range(concurrent)]
+            for future in as_completed(futures):
                 try:
-                    print("📦 Attempting to upgrade yt-dlp...")
-                    subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", "yt-dlp"])
-                    print("✅ yt-dlp upgraded successfully")
-                except subprocess.CalledProcessError as e:
-                    print(f"⚠️ Failed to upgrade yt-dlp: {e}")
-    
-            result = _extractAudioUrl(videoId)
-            if result:
-                # print(f"✅ SUCCESS on attempt {attempt}!")
-                return result
-            else:
-                print(f"❌ ATTEMPT {attempt} failed - No audio URL found")
-        except Exception as e:
-            print(f"❌ ATTEMPT {attempt} failed with error: {str(e)}")
-        
-        # Wait before retrying (exponential backoff)
-        if attempt < max_attempts:
-            time.sleep((attempt/2))
-    
-    print(f"\n❌ ALL {max_attempts} ATTEMPTS FAILED for video ID: {videoId}")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", "yt-dlp"])
+                    result = future.result()
+                    if result:
+                        # Cancel remaining futures
+                        for f in futures:
+                            f.cancel()
+                        print(f"✅ Got audio URL on round {round_num}")
+                        return result
+                except Exception as e:
+                    print(f"❌ Round {round_num} request failed: {str(e)}")
+
+        print(f"❌ Round {round_num} - all {concurrent} requests failed")
+        if round_num < max_rounds:
+            time.sleep(round_num)
+
+    print(f"\n❌ ALL {max_rounds} ROUNDS FAILED for video ID: {videoId}")
     return None
 
 def _extractAudioUrl(videoId: str) -> Optional[str]:
     youtube_url = f"https://www.youtube.com/watch?v={videoId}"
 
-    # Step 1: Send request to ssyoutube.online API
-    api_url = os.getenv("MUSIC_API_URL")
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Origin": os.getenv("MUSIC_API_ORIGIN"),
-        "Referer": os.getenv("MUSIC_API_REF"),
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
-        "Upgrade-Insecure-Requests": "1",
-        "sec-ch-ua": '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": '"macOS"',
+    ydl_opts = {
+        'quiet': True,
+        'no_warnings': True,
+        'extract_flat': False,
+        'retries': 2,
+        'socket_timeout': 30,
+        'extractor_args': {'youtube': {'js_runtimes': ['nodejs']}},
     }
-    data = {"videoURL": youtube_url}
-    response = requests.post(api_url, headers=headers, data=data)
 
-    
-    if response.status_code != 200:
-        raise Exception(f"API request failed with status {response.status_code}")
-    
-    # Step 2: Parse HTML to extract m4a URL
-    soup = BeautifulSoup(response.text, "html.parser")
-    button = soup.find("button", {"data-url": True})
-    if not button:
-        raise Exception("Could not find M4A download button in response")
-    
-    m4a_url = button["data-url"]
-    m4a_url = unquote(m4a_url)
-    
-    return m4a_url
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(youtube_url, download=False)
 
-# def _extractAudioUrl(videoId: str, attempt_num: int) -> Optional[str]:
+        if not info:
+            return None
 
-#     youtube_url = f"https://www.youtube.com/watch?v={videoId}"
+        formats = info.get('formats', [])
+        if not formats:
+            return None
 
-#     # Configure yt-dlp for AUDIO-ONLY extraction
-#     ydl_opts = {
-#         'format': 'bestaudio[vcodec=none]/bestaudio',  # Force audio-only, fallback to best audio
-#         'quiet': attempt_num > 1,  # Be quiet on retry attempts to reduce noise
-#         'no_warnings': attempt_num > 1,  # Hide warnings on retries
-#         'extract_flat': False,
-#         'verbose': False,
-#         # Add retry options for yt-dlp itself
-#         'retries': 2,
-#         'socket_timeout': 30,
-#     }
-    
-#     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-#         info = ydl.extract_info(youtube_url, download=False)
-        
-#         if not info:
-#             print(f"[Attempt {attempt_num}] Error: Could not extract video info")
-#             return None
+        # Filter for audio-only formats
+        audio_formats = [
+            f for f in formats
+            if f.get('url')
+            and f.get('acodec', 'none') != 'none'
+            and f.get('vcodec') == 'none'
+        ]
 
-        
-#         # Get all available formats
-#         formats = info.get('formats', [])
-#         if not formats:
-#             print(f"[Attempt {attempt_num}] Error: No formats available")
-#             return None
-        
-#         # Filter for AUDIO-ONLY formats only
-#         audio_formats = []
-        
-#         for f in formats:
-#             # Only accept audio-only formats (no video stream)
-#             if (f.get('url') and 
-#                 f.get('acodec', 'none') != 'none' and 
-#                 f.get('vcodec') == 'none'):  # Strict audio-only requirement
-                
-#                 abr = f.get('abr', 0)  # Audio bitrate
-#                 asr = f.get('asr', 0)  # Audio sample rate
-#                 ext = f.get('ext', 'unknown')
-#                 acodec = f.get('acodec', 'unknown')
-                
-#                 audio_formats.append({
-#                     'url': f['url'],
-#                     'abr': abr,
-#                     'asr': asr,
-#                     'ext': ext,
-#                     'acodec': acodec,
-#                     'format_id': f.get('format_id', ''),
-#                     'filesize': f.get('filesize', 0)
-#                 })
-        
-#         if not audio_formats:
-#             print(f"[Attempt {attempt_num}] Error: No audio-only formats found")
-#             return None
-        
-#         # Sort by audio quality (highest bitrate and sample rate first)
-#         audio_formats.sort(key=lambda x: (
-#             x['abr'] or 0,       # Higher bitrate better
-#             x['asr'] or 0        # Higher sample rate better
-#         ), reverse=True)
-        
-#         # Print available audio-only qualities (only on first attempt to avoid spam)
-#         # if attempt_num == 1:
-#         #     print(f"\nAvailable AUDIO-ONLY formats (total: {len(audio_formats)}):")
-#         #     for i, fmt in enumerate(audio_formats[:5]):  # Show top 5
-#         #         size_info = f", ~{fmt['filesize']//1024//1024}MB" if fmt['filesize'] else ""
-#         #         print(f"  {i+1}. {fmt['format_id']}: {fmt['acodec']} @ {fmt['abr']}kbps, "
-#         #               f"{fmt['asr']}Hz, {fmt['ext']} (Audio-only){size_info}")
-        
-#         # Select the best quality format
-#         best_format = audio_formats[0]
-        
-#         # print(f"[Attempt {attempt_num}] Selected: {best_format['acodec']} @ {best_format['abr']}kbps")
-        
-#         # Validate the URL before returning
-#         url = best_format['url']
-#         if url and len(url) > 50:  # Basic URL validation
-#             return url
-#         else:
-#             print(f"[Attempt {attempt_num}] Error: Invalid URL received")
-#             return None
+        if not audio_formats:
+            return None
+
+        # Sort by audio quality (highest bitrate first)
+        audio_formats.sort(key=lambda x: (x.get('abr', 0) or 0, x.get('asr', 0) or 0), reverse=True)
+
+        url = audio_formats[0]['url']
+        if url and len(url) > 50:
+            return url
+        return None
 
 def getExpiryTimeout(music_url: str) -> int:
     try:
