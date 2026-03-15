@@ -33,8 +33,6 @@ const CreatePlaylist = () => {
     <CustomPortal
       triggerTitle="Create new playlist ?"
       dialogTitle="Create new playlist"
-      triggerVariant={"default"}
-      triggerClassName="justify-center items-center p-2 bg-secondary rounded-2xl"
       dialogContent={
         <View>
           <CustomInput
@@ -46,15 +44,15 @@ const CreatePlaylist = () => {
             }}
           />
           {!valid && playlistName.length > 0 && (
-            <Text className="text-red-500 text-sm">
-              {"Playlist name must be at least 4 characters long"}
+            <Text style={{ color: "#ef4444", fontSize: 13 }}>
+              Playlist name must be at least 4 characters long
             </Text>
           )}
           {valid && message.length > 0 && (
-            <Text className="text-emerald-500 text-lg">{message}</Text>
+            <Text style={{ color: "#10b981", fontSize: 16 }}>{message}</Text>
           )}
           {!valid && message.length > 0 && (
-            <Text className="text-red-500 text-sm">{message}</Text>
+            <Text style={{ color: "#ef4444", fontSize: 13 }}>{message}</Text>
           )}
         </View>
       }

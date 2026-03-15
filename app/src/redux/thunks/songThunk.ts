@@ -5,12 +5,15 @@ import * as FileSystem from "expo-file-system";
 import { RootState } from "../store";
 import {
   addToPlayedSongs,
+  removeFromPlayedSongs,
   removeSongFromQueue,
+  addSongToQueueFront,
   setDownloadedSongInfo,
   removeDownloadedSongInfo,
   setDownloadProgress,
   addActiveDownload,
   removeActiveDownload,
+  setSongQueue,
 } from "../song-player";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -48,11 +51,8 @@ async function downloadAndMove(
 
     // Check if temp file exists (partial download)
     const tempFileInfo = await FileSystem.getInfoAsync(tempFileUri);
-    let resumable = false;
 
     if (tempFileInfo.exists) {
-      // Can potentially resume, but expo-file-system doesn't support resume
-      // So we'll delete and start fresh
       await FileSystem.deleteAsync(tempFileUri, { idempotent: true });
     }
 
@@ -68,7 +68,7 @@ async function downloadAndMove(
         dispatch(
           setDownloadProgress({
             videoId,
-            progress: Math.min(progress * 100, 99), // Cap at 99% until moved
+            progress: Math.min(progress * 100, 99),
           })
         );
       }
@@ -94,10 +94,8 @@ async function downloadAndMove(
     dispatch(removeActiveDownload(videoId));
   } catch (error) {
     console.error("Download error:", error);
-    // Clean up on error
     dispatch(removeActiveDownload(videoId));
 
-    // Try to clean up temp file
     try {
       await FileSystem.deleteAsync(tempFileUri, { idempotent: true });
     } catch {}
@@ -109,35 +107,30 @@ export const setSongAsync = createAsyncThunk<SetSongResult, Video>(
   async (video, { getState, dispatch }) => {
     const fileUri = `${FileSystem.documentDirectory}${video.id}.mp4`;
     const state = getState() as RootState;
-    // Check if already downloaded
-    dispatch(setNextSongAsync());
+
+    // Remove this song from queue if it's there (avoid playing + queued)
+    dispatch(removeSongFromQueue(video.id));
+
     const fileInfo = await FileSystem.getInfoAsync(fileUri);
     if (fileInfo.exists) {
-      // Add to downloadedSongsMap if not already there
       if (!state.songPlayer.downloadedSongsMap[video.id]) {
         dispatch(setDownloadedSongInfo({ videoId: video.id, fileUri, video }));
       }
-      // add to played songs
+
+      // Prepare next song after state settles
+      setTimeout(() => dispatch(setNextSongAsync()), 100);
+
       return {
-        song: {
-          video,
-          musicUrl: fileUri,
-        },
+        song: { video, musicUrl: fileUri },
         relatedSongs: null,
         error: null,
       };
     }
-    const isGetRelatedSongs = state.songPlayer.queue.length < 1;
-    const data = await getSongUrl(
-      video.id,
-      isGetRelatedSongs
-    );
+
+    const isGetRelatedSongs = state.songPlayer.queue.length < 3;
+    const data = await getSongUrl(video.id, isGetRelatedSongs);
     if (!data.url) {
-      return {
-        song: null,
-        relatedSongs: null,
-        error: "No music URL found",
-      };
+      return { song: null, relatedSongs: null, error: "No music URL found" };
     }
 
     // Start download in background (don't await)
@@ -146,24 +139,24 @@ export const setSongAsync = createAsyncThunk<SetSongResult, Video>(
     // Check if file is already downloaded, use local file
     const downloadedSongInfo = state.songPlayer.downloadedSongsMap[video.id];
     if (downloadedSongInfo) {
-      const fileInfo = await FileSystem.getInfoAsync(downloadedSongInfo.fileUri);
-      if (fileInfo.exists) {
+      const info = await FileSystem.getInfoAsync(downloadedSongInfo.fileUri);
+      if (info.exists) {
+        // Prepare next song after state settles (with related songs added)
+        setTimeout(() => dispatch(setNextSongAsync()), 100);
+
         return {
-          song: {
-            video,
-            musicUrl: downloadedSongInfo.fileUri,
-          },
+          song: { video, musicUrl: downloadedSongInfo.fileUri },
           relatedSongs: data.related_songs || null,
           error: null,
         };
       }
     }
 
+    // Prepare next song after state settles
+    setTimeout(() => dispatch(setNextSongAsync()), 100);
+
     return {
-      song: {
-        video,
-        musicUrl: data.url,
-      },
+      song: { video, musicUrl: data.url },
       relatedSongs: data.related_songs || null,
       error: null,
     };
@@ -174,10 +167,13 @@ export const setNextSongAsync = createAsyncThunk<Video | null>(
   "songPlayer/setNextSongAsync",
   async (_, { getState, dispatch }) => {
     const state = getState() as RootState;
-    const video = state.songPlayer.queue[0];
+    const currentId = state.songPlayer.currentSong?.video?.id;
+
+    // Find first queue item that isn't the current song
+    const video = state.songPlayer.queue.find((s) => s.id !== currentId);
 
     if (!video) {
-      return null
+      return null;
     }
 
     // Check if already downloaded in map
@@ -196,19 +192,17 @@ export const setNextSongAsync = createAsyncThunk<Video | null>(
     if (fileInfo.exists) {
       return video;
     }
-    const isGetRelatedSongs = state.songPlayer.queue.length < 1;
-    const data = await getSongUrl(
-      video.id,
-      isGetRelatedSongs
-    );
+
+    const isGetRelatedSongs = state.songPlayer.queue.length < 3;
+    const data = await getSongUrl(video.id, isGetRelatedSongs);
     if (!data.url) {
-      return null
+      return null;
     }
 
     // Start download in background
     downloadAndMove(data.url, video, dispatch, getState);
 
-    return video
+    return video;
   }
 );
 
@@ -216,10 +210,56 @@ export const playNextAsync = createAsyncThunk(
   "songPlayer/playNext",
   async (_, { dispatch, getState }) => {
     const state = getState() as RootState;
-    const songToPlay = state.songPlayer.nextSong;
+    const { repeatMode, currentSong, nextSong, playedSongs, queue } = state.songPlayer;
+
+    // Repeat One: replay current song
+    if (repeatMode === 'one' && currentSong?.video) {
+      dispatch(setSongAsync(currentSong.video));
+      return;
+    }
+
+    // Add current song to played history before moving on
+    if (currentSong?.video) {
+      dispatch(addToPlayedSongs(currentSong.video));
+    }
+
+    // Try nextSong first, then fall back to first song in queue
+    const songToPlay = nextSong || queue[0] || null;
     if (songToPlay) {
-      dispatch(addToPlayedSongs(songToPlay));
       dispatch(setSongAsync(songToPlay));
+    } else if (repeatMode === 'all' && playedSongs.length > 0) {
+      // Queue is empty, repeat all: replay from played songs
+      const allPlayed = [...playedSongs];
+      if (currentSong?.video) {
+        allPlayed.push(currentSong.video);
+      }
+      dispatch(setSongQueue(allPlayed.slice(1)));
+      dispatch(setSongAsync(allPlayed[0]));
+    }
+    // If repeatMode === 'off' and no next song, playback stops
+  }
+);
+
+export const autoFillQueueAsync = createAsyncThunk(
+  "songPlayer/autoFillQueue",
+  async (_, { getState, dispatch }) => {
+    const state = getState() as RootState;
+    const { currentSong, queue, nextSong } = state.songPlayer;
+
+    // Only auto-fill if queue is empty and we have a current song
+    if (queue.length > 0 || !currentSong?.video) return;
+    // Also skip if nextSong already exists
+    if (nextSong) return;
+
+    const data = await getSongUrl(currentSong.video.id, true);
+    if (data.related_songs && data.related_songs.length > 0) {
+      const currentId = currentSong.video.id;
+      const newSongs = data.related_songs.filter((s) => s.id !== currentId);
+      if (newSongs.length > 0) {
+        dispatch(setSongQueue(newSongs));
+        // Prepare next song
+        setTimeout(() => dispatch(setNextSongAsync()), 100);
+      }
     }
   }
 );
@@ -228,13 +268,20 @@ export const playPreviousAsync = createAsyncThunk(
   "songPlayer/playPrevious",
   async (_, { dispatch, getState }) => {
     const state = getState() as RootState;
-    const playedSongs = state.songPlayer.playedSongs || [];
+    const { playedSongs, currentSong, queue } = state.songPlayer;
+
     if (playedSongs.length > 0) {
-      const songToPlay = playedSongs.at(-1) || null;
-      if (!songToPlay) {
-        return;
+      const songToPlay = playedSongs.at(-1)!;
+
+      // Put current song back at front of queue so user can go forward again
+      if (currentSong?.video) {
+        dispatch(addSongToQueueFront(currentSong.video));
       }
-      await dispatch(setSongAsync(songToPlay));
+
+      // Remove from played history
+      dispatch(removeFromPlayedSongs(songToPlay.id));
+
+      dispatch(setSongAsync(songToPlay));
     }
   }
 );

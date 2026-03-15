@@ -1,5 +1,5 @@
-import { del, get, post } from "@/lib/api";
-import { Playlist, Video } from "@/types/song";
+import { del, get, post, put } from "@/lib/api";
+import { Playlist, UserSearchResult, Video } from "@/types/song";
 
 export const fetchUserPlaylists = async (): Promise<Playlist[]> => {
   try {
@@ -67,7 +67,7 @@ export const fetchSinglePlaylist = async (
 ): Promise<Playlist | null> => {
   try {
     if (!fetchFresh && playlistCache.has(playlistId)) {
-      return playlistCache.get(playlistId);
+      return playlistCache.get(playlistId)!;
     }
     const response = await get(`/api/v1/playlist/${playlistId}`);
     const searchResult: Playlist | null = response?.responseData ?? null;
@@ -85,7 +85,7 @@ export const addOrRemoveSongFromPlaylist = async (
   playlistId: string,
   song: Video
 ): Promise<{
-  status: false;
+  status: boolean;
   message: string;
 }> => {
   if (isPresent) {
@@ -144,3 +144,83 @@ export async function createPlaylistAsync(playlistName: string): Promise<{
     };
   }
 }
+
+export const inviteToPlaylist = async (
+  playlistId: string,
+  userEmail: string,
+  role: string = "editor"
+): Promise<{ status: boolean; message: string }> => {
+  try {
+    const response = await post("/api/v1/playlist/invite", {
+      playlist_id: playlistId,
+      user_email: userEmail,
+      role,
+    });
+    return {
+      status: response?.responseStatus?.status || false,
+      message: response?.responseStatus?.message || "",
+    };
+  } catch (error) {
+    return { status: false, message: "Error inviting user" };
+  }
+};
+
+export const leavePlaylist = async (
+  playlistId: string
+): Promise<{ status: boolean; message: string }> => {
+  try {
+    const response = await post("/api/v1/playlist/leave", {
+      playlist_id: playlistId,
+    });
+    return {
+      status: response?.responseStatus?.status || false,
+      message: response?.responseStatus?.message || "",
+    };
+  } catch (error) {
+    return { status: false, message: "Error leaving playlist" };
+  }
+};
+
+export const searchUsers = async (query: string): Promise<UserSearchResult[]> => {
+  try {
+    const response = await get(`/api/v1/users/search`, { q: query });
+    return response?.responseData || [];
+  } catch (error) {
+    return [];
+  }
+};
+
+export const renamePlaylist = async (
+  playlistId: string,
+  newName: string
+): Promise<{ status: boolean; message: string }> => {
+  try {
+    const response = await put(`/api/v1/playlist/${playlistId}`, {
+      playlistName: newName,
+    });
+    return {
+      status: response?.responseStatus?.status || false,
+      message: response?.responseStatus?.message || "",
+    };
+  } catch (error) {
+    return { status: false, message: "Error renaming playlist" };
+  }
+};
+
+export const removeUserFromPlaylist = async (
+  playlistId: string,
+  userEmail: string
+): Promise<{ status: boolean; message: string }> => {
+  try {
+    const response = await post("/api/v1/playlist/remove/user", {
+      playlist_id: playlistId,
+      user_email: userEmail,
+    });
+    return {
+      status: response?.responseStatus?.status || false,
+      message: response?.responseStatus?.message || "",
+    };
+  } catch (error) {
+    return { status: false, message: "Error removing user" };
+  }
+};

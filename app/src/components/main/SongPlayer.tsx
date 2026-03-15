@@ -123,11 +123,13 @@ const SongPlayer = () => {
     );
   };
 
-  const bottomPosition = pathname.includes("/playlist")
-    ? 70
-    : pathname.includes("/search")
-    ? 90
-    : 60;
+  // Tabs paths start with / and match tab names
+  const isTabRoute =
+    pathname === "/home" ||
+    pathname === "/search" ||
+    pathname === "/profile" ||
+    pathname === "/setting";
+  const bottomPosition = isTabRoute ? 90 : 70;
 
   return (
     <GestureDetector gesture={panGesture}>

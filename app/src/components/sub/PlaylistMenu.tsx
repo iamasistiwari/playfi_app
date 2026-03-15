@@ -7,7 +7,7 @@ import { AppDispatch, RootState } from "@/redux/store";
 import { MaterialIcons } from "@expo/vector-icons";
 import CustomPortal from "./CustomPortal";
 import CustomMenu, { MenuItem } from "./CustomMenu";
-import { changeVisiblity, deletePlaylist } from "@/actions/playlist";
+import { changeVisiblity, deletePlaylist, renamePlaylist } from "@/actions/playlist";
 import {
   fetchSinglePlaylistAsync,
   userPlaylistAsync,
@@ -19,6 +19,7 @@ import Entypo from "@expo/vector-icons/Entypo";
 const PlaylistMenu = ({ playlistId }: { playlistId: string }) => {
   const [menuVisible, setMenuVisible] = useState(false);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [renameDialogVisible, setRenameDialogVisible] = useState(false);
   const [makePrivatePublicDialogVisible, setMakePrivatePublicDialogVisible] =
     useState(false);
   const [playlistDetail, setPlaylistDetail] = useState<{
@@ -45,6 +46,11 @@ const PlaylistMenu = ({ playlistId }: { playlistId: string }) => {
     if (!playlistDetail?.isUserPlaylist) return [];
 
     return [
+      {
+        title: "Rename Playlist",
+        onPress: () => setRenameDialogVisible(true),
+        icon: <MaterialIcons name="edit" size={24} color="#16a34a" />,
+      },
       {
         title: playlistDetail?.isGlobal ? "Make Private" : "Make Public",
         onPress: () => {
@@ -84,11 +90,30 @@ const PlaylistMenu = ({ playlistId }: { playlistId: string }) => {
         title="Playlist Options"
       />
 
+      {/* Rename Dialog */}
+      <CustomPortal
+        visible={renameDialogVisible}
+        handleClose={() => setRenameDialogVisible(false)}
+        dialogTitle="Rename Playlist"
+        inputPlaceholder="Enter new name"
+        inputDefaultValue={currentPlaylist?.playlistName || ""}
+        actionTitle="Rename"
+        onSubmit={async (newName?: string) => {
+          if (!newName?.trim()) return;
+          const result = await renamePlaylist(playlistId, newName.trim());
+          if (result.status) {
+            dispatch(fetchSinglePlaylistAsync({ playlistId, fresh: true }));
+            Toast.show({ type: "success", text1: "Playlist renamed" });
+          } else {
+            Toast.show({ type: "error", text1: result.message || "Failed to rename" });
+          }
+        }}
+      />
+
+      {/* Make Public/Private Dialog */}
       <CustomPortal
         visible={makePrivatePublicDialogVisible}
-        handleClose={() => {
-          setMakePrivatePublicDialogVisible(false);
-        }}
+        handleClose={() => setMakePrivatePublicDialogVisible(false)}
         autoClose={true}
         dialogTitle={playlistDetail?.isGlobal ? "Make Private" : "Make Public"}
         onSubmit={async () => {
@@ -102,23 +127,19 @@ const PlaylistMenu = ({ playlistId }: { playlistId: string }) => {
           await new Promise((resolve) => setTimeout(resolve, 2000));
         }}
         dialogContent={
-          <View>
-            <Text className="text-white">
-              {playlistDetail?.isGlobal
-                ? "Are you sure you want to make this playlist private?"
-                : "Are you sure you want to make this playlist public?"}
-            </Text>
-          </View>
+          <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 15, lineHeight: 22 }}>
+            {playlistDetail?.isGlobal
+              ? "Are you sure you want to make this playlist private?"
+              : "Are you sure you want to make this playlist public?"}
+          </Text>
         }
         actionTitle={playlistDetail?.isGlobal ? "Make Private" : "Make Public"}
-        actionClassName="text-red-500"
       />
 
+      {/* Delete Dialog */}
       <CustomPortal
         visible={deleteDialogVisible}
-        handleClose={() => {
-          setDeleteDialogVisible(false);
-        }}
+        handleClose={() => setDeleteDialogVisible(false)}
         dialogTitle="Delete Playlist"
         onSubmit={async () => {
           const response = await deletePlaylist(playlistId);
@@ -127,16 +148,13 @@ const PlaylistMenu = ({ playlistId }: { playlistId: string }) => {
             await new Promise((resolve) => setTimeout(resolve, 700));
             router.back();
           } else {
-            Toast.show({
-              type: "error",
-              text1: "Error deleting playlist",
-            });
+            Toast.show({ type: "error", text1: "Error deleting playlist" });
           }
         }}
         dialogContent={
-          <View>
-            <Text className="text-white">Delete Playlist</Text>
-          </View>
+          <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 15, lineHeight: 22 }}>
+            Are you sure you want to delete this playlist? This action cannot be undone.
+          </Text>
         }
         actionTitle="Delete"
         actionClassName="text-red-500"

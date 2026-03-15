@@ -6,7 +6,7 @@ import {
   Pressable,
   Dimensions,
 } from "react-native";
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
 import { Video } from "@/types/song";
@@ -72,9 +72,13 @@ const DownloadedSongs = () => {
   const currentSong = songPlayerState?.currentSong;
 
   // Convert map to array and sort by download time (newest first)
-  const downloadedSongs = Object.values(downloadedSongsMap)
-    .sort((a, b) => b.downloadedAt - a.downloadedAt)
-    .map((info) => info.video);
+  const downloadedSongs = useMemo(
+    () =>
+      Object.values(downloadedSongsMap)
+        .sort((a, b) => b.downloadedAt - a.downloadedAt)
+        .map((info) => info.video),
+    [downloadedSongsMap]
+  );
 
   const handleSongPress = useCallback(
     (song: Video) => {

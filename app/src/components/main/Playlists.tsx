@@ -1,8 +1,10 @@
 import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Dimensions } from "react-native";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import PlaylistTile from "../sub/PlaylistTile";
+import SectionHeader from "../sub/SectionHeader";
+import CreatePlaylistModal from "../sub/CreatePlaylistModal";
 import { Playlist } from "@/types/song";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -17,7 +19,18 @@ const Playlists = () => {
 
   const userPlaylists = [likedSongsPlaylist, ...userPlaylist];
   const [currentPage, setCurrentPage] = useState(0);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Split user playlists into pages of 6
+  const ITEMS_PER_PAGE = 6;
+  const pages = useMemo(() => {
+    const result: Playlist[][] = [];
+    for (let i = 0; i < userPlaylists.length; i += ITEMS_PER_PAGE) {
+      result.push(userPlaylists.slice(i, i + ITEMS_PER_PAGE));
+    }
+    return result;
+  }, [userPlaylists]);
 
   if (loading) {
     return (
@@ -25,13 +38,6 @@ const Playlists = () => {
         <ActivityIndicator size="large" color="#1DB954" />
       </View>
     );
-  }
-
-  // Split user playlists into pages of 6
-  const ITEMS_PER_PAGE = 6;
-  const pages: Playlist[][] = [];
-  for (let i = 0; i < userPlaylists.length; i += ITEMS_PER_PAGE) {
-    pages.push(userPlaylists.slice(i, i + ITEMS_PER_PAGE));
   }
 
   const handleScroll = (event: any) => {
@@ -45,6 +51,12 @@ const Playlists = () => {
       {/* Paginated User Playlists */}
       {userPlaylists.length > 0 && (
         <View>
+          <SectionHeader
+            title="Your Playlists"
+            icon="library-outline"
+            actionIcon="add-circle-outline"
+            onAction={() => setCreateModalVisible(true)}
+          />
           <ScrollView
             ref={scrollViewRef}
             horizontal
@@ -96,12 +108,17 @@ const Playlists = () => {
           </ScrollView>
         </View>
       )}
+      <CreatePlaylistModal
+        visible={createModalVisible}
+        onClose={() => setCreateModalVisible(false)}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    marginTop: 24,
     paddingBottom: 16,
   },
   loadingContainer: {

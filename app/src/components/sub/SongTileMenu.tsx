@@ -10,6 +10,7 @@ import { addOrRemoveSongFromPlaylist } from "@/actions/playlist";
 import { handleLikeSong } from "@/redux/playlist-slice";
 import CustomMenu, { MenuItem } from "./CustomMenu";
 import PlaylistBottomSheet from "./PlaylistBottomSheet";
+import CreatePlaylistModal from "./CreatePlaylistModal";
 import { removeDownloadedSong } from "@/utils/downloadUtils";
 
 interface Props {
@@ -19,6 +20,7 @@ interface Props {
 const SongTileMenuComponent: React.FC<Props> = ({ video }: Props) => {
   const [isSongPresent, setIsSongPresent] = useState<Map<string, boolean>>(new Map());
   const [addToPlaylistDialogVisible, setaddToPlaylistDialogVisible] = useState(false);
+  const [createPlaylistVisible, setCreatePlaylistVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [songActionLoading, setSongActionLoading] = useState<boolean[]>([]);
 
@@ -107,8 +109,12 @@ const SongTileMenuComponent: React.FC<Props> = ({ video }: Props) => {
   );
 
   const handleCreatePlaylist = useCallback(() => {
-    // Implement create playlist logic
-    console.log("Create playlist");
+    setCreatePlaylistVisible(true);
+  }, []);
+
+  const handlePlaylistCreated = useCallback(async () => {
+    setCreatePlaylistVisible(false);
+    setaddToPlaylistDialogVisible(false);
   }, []);
 
   const handleRemoveDownload = useCallback(async () => {
@@ -174,6 +180,12 @@ const SongTileMenuComponent: React.FC<Props> = ({ video }: Props) => {
         loadingStates={songActionLoading}
         onPlaylistPress={handlePlaylistPress}
         onCreatePlaylist={handleCreatePlaylist}
+      />
+
+      <CreatePlaylistModal
+        visible={createPlaylistVisible}
+        onClose={() => setCreatePlaylistVisible(false)}
+        onCreated={handlePlaylistCreated}
       />
     </View>
   );

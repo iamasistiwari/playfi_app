@@ -22,6 +22,8 @@ interface songPlayerState {
   activeDownloads: string[];
   lastSearchQuery: string;
   lastSearchResults: Video[];
+  repeatMode: 'off' | 'one' | 'all';
+  shuffleEnabled: boolean;
 }
 
 const initialState: songPlayerState = {
@@ -38,6 +40,8 @@ const initialState: songPlayerState = {
   activeDownloads: [],
   lastSearchQuery: "",
   lastSearchResults: [],
+  repeatMode: 'off',
+  shuffleEnabled: false,
 };
 
 const songPlayerSlice = createSlice({
@@ -82,14 +86,29 @@ const songPlayerSlice = createSlice({
       if (!Array.isArray(state.queue)) {
         state.queue = [];
       }
+      // Don't add if it's the currently playing song
+      if (state.currentSong?.video?.id === action.payload.id) return;
       state.queue = state.queue.filter((song) => song.id !== action.payload.id);
       state.queue.push(action.payload);
+    },
+    addSongToQueueFront(state, action: PayloadAction<Video>) {
+      if (!Array.isArray(state.queue)) {
+        state.queue = [];
+      }
+      // Don't add if it's the currently playing song
+      if (state.currentSong?.video?.id === action.payload.id) return;
+      state.queue = state.queue.filter((song) => song.id !== action.payload.id);
+      state.queue.unshift(action.payload);
     },
     removeSongFromQueue(state, action: PayloadAction<string>) {
       if (!Array.isArray(state.queue)) {
         state.queue = [];
       }
       state.queue = state.queue.filter((song) => song.id !== action.payload);
+      // Clear nextSong if it was the removed song
+      if (state.nextSong?.id === action.payload) {
+        state.nextSong = null;
+      }
     },
     resetSongPlayer(state) {
       state.recentSearch = [];
@@ -175,6 +194,29 @@ const songPlayerSlice = createSlice({
       state.lastSearchQuery = "";
       state.lastSearchResults = [];
     },
+    clearRecentSearch(state) {
+      state.recentSearch = [];
+    },
+    removeFromRecentSearch(state, action: PayloadAction<number>) {
+      if (Array.isArray(state.recentSearch)) {
+        state.recentSearch.splice(action.payload, 1);
+      }
+    },
+    toggleRepeatMode(state) {
+      const modes: Array<'off' | 'one' | 'all'> = ['off', 'one', 'all'];
+      const currentIndex = modes.indexOf(state.repeatMode || 'off');
+      state.repeatMode = modes[(currentIndex + 1) % 3];
+    },
+    toggleShuffle(state) {
+      state.shuffleEnabled = !state.shuffleEnabled;
+      if (state.shuffleEnabled && state.queue.length > 1) {
+        // Fisher-Yates shuffle
+        for (let i = state.queue.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [state.queue[i], state.queue[j]] = [state.queue[j], state.queue[i]];
+        }
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -182,10 +224,14 @@ const songPlayerSlice = createSlice({
         setNextSongAsync.fulfilled,
         (state, action: PayloadAction<Video | null>) => {
           if (!action.payload) {
+            state.nextSong = null;
             return;
           }
           state.nextSong = action.payload;
-          state.queue.shift();
+          // Remove this specific song from queue (not just shift)
+          state.queue = state.queue.filter(
+            (s) => s.id !== action.payload!.id
+          );
         }
       )
       .addCase(
@@ -202,10 +248,25 @@ const songPlayerSlice = createSlice({
             return;
           }
           state.currentSong = action.payload.song;
-          state.queue = [
-            ...state.queue,
-            ...(action.payload.relatedSongs || []),
-          ];
+
+          // Add related songs, filtering out current song and duplicates
+          const relatedSongs = action.payload.relatedSongs || [];
+          if (relatedSongs.length > 0) {
+            const currentId = action.payload.song.video.id;
+            const existingIds = new Set(state.queue.map((s) => s.id));
+            existingIds.add(currentId);
+
+            const newSongs = relatedSongs.filter(
+              (s) => !existingIds.has(s.id)
+            );
+            state.queue = [...state.queue, ...newSongs];
+          }
+
+          // Clear nextSong if it's the song we just started playing
+          if (state.nextSong?.id === action.payload.song.video.id) {
+            state.nextSong = null;
+          }
+
           state.loading = false;
         }
       );
@@ -215,6 +276,7 @@ const songPlayerSlice = createSlice({
 export default songPlayerSlice.reducer;
 export const {
   addSongToQueue,
+  addSongToQueueFront,
   removeSongFromQueue,
   addToRecentSearch,
   setSongQueue,
@@ -230,4 +292,8 @@ export const {
   removeActiveDownload,
   setLastSearchState,
   clearLastSearchState,
+  clearRecentSearch,
+  removeFromRecentSearch,
+  toggleRepeatMode,
+  toggleShuffle,
 } = songPlayerSlice.actions;

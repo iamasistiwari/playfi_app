@@ -1,17 +1,20 @@
 import React, { useEffect } from "react";
-import { View, StyleSheet, Text, Image } from "react-native";
+import { View, StyleSheet, Text, Image, Dimensions } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   withSequence,
   withDelay,
-  withRepeat,
+  withSpring,
   Easing,
   runOnJS,
+  interpolate,
+  Extrapolate,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 type CustomSplashScreenProps = {
   onFinish: () => void;
@@ -20,144 +23,202 @@ type CustomSplashScreenProps = {
 const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({
   onFinish,
 }) => {
+  // Logo
+  const logoScale = useSharedValue(0);
   const logoOpacity = useSharedValue(0);
-  const logoScale = useSharedValue(0.5);
-  const logoRotate = useSharedValue(0);
-  const textOpacity = useSharedValue(0);
-  const textTranslateY = useSharedValue(20);
-  const iconOpacity = useSharedValue(0);
-  const iconScale = useSharedValue(0.8);
+
+  // Ring pulse
+  const ringScale = useSharedValue(0.8);
+  const ringOpacity = useSharedValue(0);
+
+  // Text
+  const titleOpacity = useSharedValue(0);
+  const titleTranslateY = useSharedValue(30);
+  const taglineOpacity = useSharedValue(0);
+
+  // Bars (equalizer)
+  const bar1Height = useSharedValue(0);
+  const bar2Height = useSharedValue(0);
+  const bar3Height = useSharedValue(0);
+  const bar4Height = useSharedValue(0);
+  const barsOpacity = useSharedValue(0);
+
+  // Screen exit
+  const screenScale = useSharedValue(1);
   const screenOpacity = useSharedValue(1);
 
-  const logoAnimatedStyle = useAnimatedStyle(() => {
-    'worklet';
-    return {
-      opacity: logoOpacity.value,
-      transform: [
-        { scale: logoScale.value },
-      ],
-    };
-  });
-
-  const textAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: textOpacity.value,
-    transform: [{ translateY: textTranslateY.value }],
-  }));
-
-  const iconAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: iconOpacity.value,
-    transform: [{ scale: iconScale.value }],
-  }));
-
-  const screenAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: screenOpacity.value,
-  }));
+  // Glow
+  const glowOpacity = useSharedValue(0);
 
   useEffect(() => {
-    // Logo animations
-    logoOpacity.value = withTiming(1, {
-      duration: 600,
-      easing: Easing.out(Easing.ease),
+    // Phase 1: Logo entrance (0-500ms)
+    logoOpacity.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.ease) });
+    logoScale.value = withSpring(1, {
+      damping: 12,
+      stiffness: 100,
+      mass: 0.8,
     });
 
-    logoScale.value = withSequence(
-      withTiming(1.1, {
-        duration: 500,
-        easing: Easing.out(Easing.back(1.5)),
-      }),
-      withTiming(1, {
-        duration: 200,
-        easing: Easing.inOut(Easing.ease),
-      })
+    // Phase 2: Ring pulse (300-800ms)
+    ringOpacity.value = withDelay(300,
+      withSequence(
+        withTiming(0.6, { duration: 400, easing: Easing.out(Easing.ease) }),
+        withTiming(0, { duration: 600, easing: Easing.in(Easing.ease) })
+      )
+    );
+    ringScale.value = withDelay(300,
+      withTiming(1.8, { duration: 1000, easing: Easing.out(Easing.ease) })
     );
 
-    logoRotate.value = withSequence(
-      withTiming(5, { duration: 300 }),
-      withTiming(-5, { duration: 300 }),
-      withTiming(0, { duration: 200 })
+    // Glow behind logo
+    glowOpacity.value = withDelay(200,
+      withSequence(
+        withTiming(1, { duration: 500, easing: Easing.out(Easing.ease) }),
+        withDelay(800,
+          withTiming(0.4, { duration: 600 })
+        )
+      )
     );
 
-    // Text fade in
-    textOpacity.value = withDelay(
-      400,
-      withTiming(1, {
-        duration: 600,
-        easing: Easing.out(Easing.ease),
-      })
+    // Phase 3: Title entrance (500-1000ms)
+    titleOpacity.value = withDelay(500,
+      withTiming(1, { duration: 500, easing: Easing.out(Easing.ease) })
+    );
+    titleTranslateY.value = withDelay(500,
+      withSpring(0, { damping: 15, stiffness: 120 })
     );
 
-    textTranslateY.value = withDelay(
-      400,
-      withTiming(0, {
-        duration: 600,
-        easing: Easing.out(Easing.ease),
-      })
+    // Phase 4: Tagline (700-1100ms)
+    taglineOpacity.value = withDelay(700,
+      withTiming(1, { duration: 400, easing: Easing.out(Easing.ease) })
     );
 
-    // Music icon pulse
-    iconOpacity.value = withDelay(
-      600,
-      withTiming(1, { duration: 400 })
+    // Phase 5: Equalizer bars (800-1600ms)
+    barsOpacity.value = withDelay(800,
+      withTiming(1, { duration: 300 })
     );
 
-    iconScale.value = withDelay(
-      600,
-      withRepeat(
+    const barAnimation = (delay: number, heights: number[]) =>
+      withDelay(800 + delay,
         withSequence(
-          withTiming(1, { duration: 800, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0.9, { duration: 800, easing: Easing.inOut(Easing.ease) })
-        ),
-        -1,
-        true
-      )
-    );
+          withTiming(heights[0], { duration: 200, easing: Easing.out(Easing.ease) }),
+          withTiming(heights[1], { duration: 250, easing: Easing.inOut(Easing.ease) }),
+          withTiming(heights[2], { duration: 200, easing: Easing.inOut(Easing.ease) }),
+          withTiming(heights[3], { duration: 300, easing: Easing.inOut(Easing.ease) }),
+          withTiming(heights[1], { duration: 250, easing: Easing.inOut(Easing.ease) }),
+        )
+      );
 
-    // Fade out the entire screen
-    screenOpacity.value = withDelay(
-      2200,
-      withTiming(
-        0,
-        {
-          duration: 500,
-          easing: Easing.in(Easing.ease),
-        },
-        (finished) => {
-          if (finished) {
-            runOnJS(onFinish)();
-          }
+    bar1Height.value = barAnimation(0, [14, 22, 10, 18]);
+    bar2Height.value = barAnimation(80, [22, 12, 26, 16]);
+    bar3Height.value = barAnimation(40, [18, 28, 14, 24]);
+    bar4Height.value = barAnimation(120, [12, 20, 24, 14]);
+
+    // Phase 6: Exit (2000-2500ms)
+    screenScale.value = withDelay(2000,
+      withTiming(1.1, { duration: 400, easing: Easing.in(Easing.ease) })
+    );
+    screenOpacity.value = withDelay(2000,
+      withTiming(0, {
+        duration: 400,
+        easing: Easing.in(Easing.ease),
+      }, (finished) => {
+        if (finished) {
+          runOnJS(onFinish)();
         }
-      )
+      })
     );
   }, []);
 
+  const logoStyle = useAnimatedStyle(() => ({
+    opacity: logoOpacity.value,
+    transform: [{ scale: logoScale.value }],
+  }));
+
+  const ringStyle = useAnimatedStyle(() => ({
+    opacity: ringOpacity.value,
+    transform: [{ scale: ringScale.value }],
+  }));
+
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: glowOpacity.value,
+  }));
+
+  const titleStyle = useAnimatedStyle(() => ({
+    opacity: titleOpacity.value,
+    transform: [{ translateY: titleTranslateY.value }],
+  }));
+
+  const taglineStyle = useAnimatedStyle(() => ({
+    opacity: taglineOpacity.value,
+  }));
+
+  const barsContainerStyle = useAnimatedStyle(() => ({
+    opacity: barsOpacity.value,
+  }));
+
+  const bar1Style = useAnimatedStyle(() => ({ height: bar1Height.value }));
+  const bar2Style = useAnimatedStyle(() => ({ height: bar2Height.value }));
+  const bar3Style = useAnimatedStyle(() => ({ height: bar3Height.value }));
+  const bar4Style = useAnimatedStyle(() => ({ height: bar4Height.value }));
+
+  const screenStyle = useAnimatedStyle(() => ({
+    opacity: screenOpacity.value,
+    transform: [{ scale: screenScale.value }],
+  }));
+
   return (
-    <Animated.View style={[styles.container, screenAnimatedStyle]}>
-      <LinearGradient
-        colors={["#0a0a0a", "#1a1a1a", "#0a0a0a"]}
-        style={styles.gradient}
-      >
-        <View style={styles.content}>
-          {/* Logo */}
-          <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
-            <Image
-              source={require("../../assets/app.jpg")}
-              style={styles.logoImage}
-              resizeMode="cover"
-            />
-          </Animated.View>
+    <Animated.View style={[styles.container, screenStyle]}>
+      <View style={styles.background}>
+        <LinearGradient
+          colors={["#000000", "#0a0a0a", "#000000"]}
+          style={StyleSheet.absoluteFill}
+        />
 
-          {/* App Name */}
-          <Animated.View style={textAnimatedStyle}>
-            <Text style={styles.appName}>PlayFi</Text>
-            <Text style={styles.tagline}>Your Music, Your Vibe</Text>
-          </Animated.View>
+        {/* Subtle radial glow */}
+        <Animated.View style={[styles.glow, glowStyle]}>
+          <LinearGradient
+            colors={["rgba(29,185,84,0.12)", "rgba(29,185,84,0.04)", "transparent"]}
+            style={styles.glowGradient}
+            start={{ x: 0.5, y: 0.5 }}
+            end={{ x: 0.5, y: 1 }}
+          />
+        </Animated.View>
+      </View>
 
-          {/* Music Icon */}
-          <Animated.View style={[styles.iconContainer, iconAnimatedStyle]}>
-            <Ionicons name="musical-notes" size={24} color="#1DB954" />
-          </Animated.View>
-        </View>
-      </LinearGradient>
+      <View style={styles.content}>
+        {/* Ring pulse effect */}
+        <Animated.View style={[styles.ring, ringStyle]} />
+
+        {/* Logo */}
+        <Animated.View style={[styles.logoContainer, logoStyle]}>
+          <Image
+            source={require("../../assets/app.jpg")}
+            style={styles.logoImage}
+            resizeMode="cover"
+          />
+        </Animated.View>
+
+        {/* App Name */}
+        <Animated.View style={[styles.titleContainer, titleStyle]}>
+          <Text style={styles.appName}>
+            Play<Text style={styles.appNameAccent}>Fi</Text>
+          </Text>
+        </Animated.View>
+
+        {/* Equalizer Bars */}
+        <Animated.View style={[styles.barsContainer, barsContainerStyle]}>
+          <Animated.View style={[styles.bar, bar1Style]} />
+          <Animated.View style={[styles.bar, bar2Style]} />
+          <Animated.View style={[styles.bar, bar3Style]} />
+          <Animated.View style={[styles.bar, bar4Style]} />
+        </Animated.View>
+
+        {/* Tagline */}
+        <Animated.View style={taglineStyle}>
+          <Text style={styles.tagline}>Your Music, Your Vibe</Text>
+        </Animated.View>
+      </View>
     </Animated.View>
   );
 };
@@ -169,55 +230,86 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    zIndex: 999,
   },
-  gradient: {
+  background: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#000",
+  },
+  glow: {
+    position: "absolute",
+    top: SCREEN_HEIGHT * 0.25,
+    left: SCREEN_WIDTH * 0.1,
+    right: SCREEN_WIDTH * 0.1,
+    height: SCREEN_HEIGHT * 0.35,
+  },
+  glowGradient: {
+    flex: 1,
+    borderRadius: SCREEN_WIDTH,
+  },
+  content: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  content: {
-    alignItems: "center",
-    gap: 24,
+  ring: {
+    position: "absolute",
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 2,
+    borderColor: "rgba(29,185,84,0.4)",
   },
   logoContainer: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
+    width: 120,
+    height: 120,
+    borderRadius: 28,
     overflow: "hidden",
-    backgroundColor: "#000000",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: "#111",
     shadowColor: "#1DB954",
-    shadowOffset: {
-      width: 0,
-      height: 0,
-    },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 24,
+    elevation: 16,
   },
   logoImage: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
+    width: 120,
+    height: 120,
+  },
+  titleContainer: {
+    marginTop: 28,
   },
   appName: {
-    fontSize: 36,
+    fontSize: 42,
     fontWeight: "800",
     color: "#fff",
     textAlign: "center",
-    letterSpacing: 2,
+    letterSpacing: 3,
+  },
+  appNameAccent: {
+    color: "#1DB954",
+  },
+  barsContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 4,
+    height: 30,
+    marginTop: 20,
+  },
+  bar: {
+    width: 4,
+    backgroundColor: "#1DB954",
+    borderRadius: 2,
+    minHeight: 4,
   },
   tagline: {
-    fontSize: 14,
-    fontWeight: "400",
-    color: "rgba(255, 255, 255, 0.7)",
+    fontSize: 13,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.35)",
     textAlign: "center",
-    marginTop: 4,
-    letterSpacing: 1,
-  },
-  iconContainer: {
-    marginTop: 8,
+    marginTop: 16,
+    letterSpacing: 2,
+    textTransform: "uppercase",
   },
 });
 

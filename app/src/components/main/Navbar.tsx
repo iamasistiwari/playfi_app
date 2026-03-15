@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 
 const Navbar = () => {
+  const { name } = useSelector((state: RootState) => state.user);
   const currentHour = new Date().getHours();
 
   const getGreeting = () => {
@@ -12,9 +13,14 @@ const Navbar = () => {
     return "Good evening";
   };
 
+  const firstName = name?.split(" ")[0] || "";
+
   return (
     <View style={styles.container}>
-      <Text style={styles.greeting}>{getGreeting()}</Text>
+      <Text style={styles.greeting}>
+        {getGreeting()}
+        {firstName ? `, ${firstName}` : ""}
+      </Text>
     </View>
   );
 };

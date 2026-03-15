@@ -4,7 +4,9 @@ import SongSlider from "@/components/sub/SongSlider";
 import SongTileMenu from "@/components/sub/SongTileMenu";
 import { usePlayer } from "@/hooks/usePlayer";
 import { AppDispatch, RootState } from "@/redux/store";
-import { playNextAsync, setSongAsync } from "@/redux/thunks/songThunk";
+import { autoFillQueueAsync, playNextAsync, playPreviousAsync, setSongAsync } from "@/redux/thunks/songThunk";
+import { handleLikeSong } from "@/redux/playlist-slice";
+import { toggleRepeatMode, toggleShuffle } from "@/redux/song-player";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -15,6 +17,8 @@ import {
   Dimensions,
   Pressable,
   Modal,
+  ImageBackground,
+  ScrollView as RNScrollView,
 } from "react-native";
 import {
   Gesture,
@@ -35,11 +39,16 @@ import { useDispatch, useSelector } from "react-redux";
 import { LinearGradient } from "expo-linear-gradient";
 import { Video } from "@/types/song";
 
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } =
+  Dimensions.get("window");
+const ART_SIZE = Math.min(SCREEN_WIDTH - 48, SCREEN_HEIGHT * 0.38);
 
 const Song = () => {
-  const { currentSong, loading, queue, nextSong } = useSelector(
+  const { currentSong, loading, queue, nextSong, repeatMode, shuffleEnabled } = useSelector(
     (state: RootState) => state.songPlayer
+  );
+  const { likedSongsPlaylist } = useSelector(
+    (state: RootState) => state.playlist
   );
   const { togglePlayPause, playerState, seekTo } = usePlayer();
   const dispatch = useDispatch<AppDispatch>();
@@ -47,29 +56,30 @@ const Song = () => {
   const translateY = useSharedValue(SCREEN_HEIGHT);
   const gestureTranslateY = useSharedValue(0);
 
-  // Queue overlay state
   const [queueVisible, setQueueVisible] = useState(false);
   const queueTranslateY = useSharedValue(SCREEN_HEIGHT);
   const queueBackdropOpacity = useSharedValue(0);
 
-  // Get the next song from queue if nextSong is not set
   const upNextSong = nextSong || queue[0];
 
-  const openQueue = () => {
-    setQueueVisible(true);
-  };
+  const isLiked = likedSongsPlaylist?.songs?.some(
+    (s) => s.id === currentSong?.video?.id
+  );
 
-  const closeQueue = () => {
-    setQueueVisible(false);
-  };
+  const openQueue = () => setQueueVisible(true);
+  const closeQueue = () => setQueueVisible(false);
+
+  // Auto-fill queue when it's empty
+  useEffect(() => {
+    if (queue.length === 0 && !nextSong && currentSong?.video) {
+      dispatch(autoFillQueueAsync());
+    }
+  }, [queue.length, nextSong, currentSong?.video?.id]);
 
   useEffect(() => {
     if (queueVisible) {
       queueBackdropOpacity.value = withTiming(1, { duration: 300 });
-      queueTranslateY.value = withSpring(0, {
-        damping: 30,
-        stiffness: 200,
-      });
+      queueTranslateY.value = withSpring(0, { damping: 30, stiffness: 200 });
     } else {
       queueBackdropOpacity.value = withTiming(0, { duration: 200 });
       queueTranslateY.value = withTiming(SCREEN_HEIGHT, { duration: 250 });
@@ -95,16 +105,19 @@ const Song = () => {
       [1, 1.2],
       Extrapolate.CLAMP
     );
-    return {
-      transform: [{ scale }],
-    };
+    return { transform: [{ scale }] };
   });
 
+  // Spinning animation for album art
+  const rotation = useSharedValue(0);
   useEffect(() => {
-    translateY.value = withSpring(0, {
-      damping: 30,
-      stiffness: 200,
-    });
+    if (playerState.isPlaying) {
+      rotation.value = withTiming(rotation.value + 360, { duration: 30000 });
+    }
+  }, [playerState.isPlaying]);
+
+  useEffect(() => {
+    translateY.value = withSpring(0, { damping: 30, stiffness: 200 });
   }, []);
 
   const panGesture = Gesture.Pan()
@@ -130,141 +143,220 @@ const Song = () => {
       }
     });
 
+  const artUrl =
+    currentSong?.video?.richThumbnail?.url ||
+    currentSong?.video?.thumbnails?.at(-1)?.url ||
+    "";
+
   return (
     <>
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.container, animatedStyle]}>
-          <LinearGradient
-            colors={["#2a2a2a", "#121212", "#000000"]}
-            style={styles.gradient}
+          {/* Blurred background */}
+          <ImageBackground
+            source={{ uri: artUrl }}
+            style={StyleSheet.absoluteFill}
+            blurRadius={60}
           >
-            <Animated.View
-              style={[styles.handleIndicator, handleIndicatorStyle]}
+            <LinearGradient
+              colors={[
+                "rgba(0,0,0,0.5)",
+                "rgba(0,0,0,0.8)",
+                "rgba(0,0,0,0.95)",
+              ]}
+              style={StyleSheet.absoluteFill}
             />
+          </ImageBackground>
 
-            <View style={styles.header}>
-              <Pressable style={styles.headerButton} onPress={handleDismiss}>
-                <Ionicons name="chevron-down" size={30} color="#fff" />
-              </Pressable>
-              <Text style={styles.headerTitle}>Now Playing</Text>
-              <View style={styles.menuButton}>
-                <SongTileMenu video={currentSong?.video} />
+          <Animated.View
+            style={[styles.handleIndicator, handleIndicatorStyle]}
+          />
+
+          <View style={styles.header}>
+            <Pressable style={styles.headerButton} onPress={handleDismiss}>
+              <Ionicons name="chevron-down" size={30} color="#fff" />
+            </Pressable>
+            <Text style={styles.headerTitle}>Now Playing</Text>
+            <View style={styles.menuButton}>
+              <SongTileMenu video={currentSong?.video} />
+            </View>
+          </View>
+
+          <RNScrollView
+            style={styles.content}
+            contentContainerStyle={styles.contentContainer}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
+            <View style={styles.albumArtSection}>
+              <View style={styles.albumArtWrapper}>
+                <SongImage
+                  url={artUrl}
+                  style={{
+                    width: ART_SIZE,
+                    height: ART_SIZE,
+                    borderRadius: 12,
+                  }}
+                />
               </View>
             </View>
 
-            <View style={styles.content}>
-              <View style={styles.albumArtSection}>
-                <View style={styles.albumArtWrapper}>
-                  <SongImage
-                    url={currentSong?.video?.richThumbnail?.url || ""}
-                    style={{
-                      width: 320,
-                      height: 320,
-                    }}
-                  />
+            <View style={styles.infoSection}>
+              <View style={styles.infoRow}>
+                <View style={styles.infoText}>
+                  <Text numberOfLines={2} style={styles.songTitle}>
+                    {currentSong?.video?.title || "No title"}
+                  </Text>
+                  <Text numberOfLines={1} style={styles.artistName}>
+                    {currentSong?.video?.channel?.name || "No channel"}
+                  </Text>
                 </View>
-              </View>
-
-              <View style={styles.infoSection}>
-                <Text numberOfLines={2} style={styles.songTitle}>
-                  {currentSong?.video?.title || "No title"}
-                </Text>
-                <Text numberOfLines={1} style={styles.artistName}>
-                  {currentSong?.video?.channel?.name || "No channel"}
-                </Text>
-              </View>
-
-              <View style={styles.sliderSection}>
-                <SongSlider />
-              </View>
-
-              <View style={styles.controlsSection}>
                 <Pressable
-                  style={styles.controlButton}
-                  onPress={() => seekTo(0)}
+                  style={styles.likeButton}
+                  onPress={() => {
+                    if (currentSong?.video) {
+                      dispatch(handleLikeSong(currentSong.video));
+                    }
+                  }}
                 >
-                  <Ionicons name="play-skip-back" size={42} color="#fff" />
+                  <Ionicons
+                    name={isLiked ? "heart" : "heart-outline"}
+                    size={28}
+                    color={isLiked ? "#1DB954" : "rgba(255,255,255,0.7)"}
+                  />
                 </Pressable>
+              </View>
+            </View>
 
-                {loading || playerState.isBuffering ? (
-                  <View style={styles.playButtonContainer}>
-                    <Loader size={50} />
-                  </View>
-                ) : (
-                  <Pressable
-                    style={styles.playButtonContainer}
-                    onPress={togglePlayPause}
-                  >
-                    <Ionicons
-                      name={
-                        playerState.isPlaying ? "pause-circle" : "play-circle"
-                      }
-                      size={85}
-                      color="#fff"
-                    />
-                  </Pressable>
-                )}
+            <View style={styles.sliderSection}>
+              <SongSlider />
+            </View>
 
+            <View style={styles.controlsSection}>
+              {/* Shuffle */}
+              <Pressable
+                style={styles.sideControlButton}
+                onPress={() => dispatch(toggleShuffle())}
+              >
+                <Ionicons
+                  name="shuffle"
+                  size={24}
+                  color={shuffleEnabled ? "#1DB954" : "rgba(255,255,255,0.5)"}
+                />
+              </Pressable>
+
+              <Pressable
+                style={styles.controlButton}
+                onPress={() => dispatch(playPreviousAsync())}
+              >
+                <Ionicons name="play-skip-back" size={36} color="#fff" />
+              </Pressable>
+
+              {loading || playerState.isBuffering ? (
+                <View style={styles.playButtonContainer}>
+                  <Loader size={50} />
+                </View>
+              ) : (
                 <Pressable
-                  style={styles.controlButton}
+                  style={styles.playButtonContainer}
+                  onPress={togglePlayPause}
+                >
+                  <View style={styles.playButtonBg}>
+                    <Ionicons
+                      name={playerState.isPlaying ? "pause" : "play"}
+                      size={36}
+                      color="#000"
+                    />
+                  </View>
+                </Pressable>
+              )}
+
+              <Pressable
+                style={styles.controlButton}
+                onPress={() => dispatch(playNextAsync())}
+              >
+                <Ionicons name="play-skip-forward" size={36} color="#fff" />
+              </Pressable>
+
+              {/* Repeat */}
+              <Pressable
+                style={styles.sideControlButton}
+                onPress={() => dispatch(toggleRepeatMode())}
+              >
+                <View>
+                  <Ionicons
+                    name="repeat"
+                    size={24}
+                    color={repeatMode !== 'off' ? "#1DB954" : "rgba(255,255,255,0.5)"}
+                  />
+                  {repeatMode === 'one' && (
+                    <View style={styles.repeatOneBadge}>
+                      <Text style={styles.repeatOneText}>1</Text>
+                    </View>
+                  )}
+                </View>
+              </Pressable>
+            </View>
+
+            <View style={styles.nextSongSection}>
+              <Pressable style={styles.nextSongHeader} onPress={openQueue}>
+                <Ionicons
+                  name="list"
+                  size={18}
+                  color="rgba(255, 255, 255, 0.7)"
+                />
+                <Text style={styles.nextSongLabel}>
+                  {queue.length > 0 ? "Up Next" : "Queue"}
+                </Text>
+                <View style={styles.queueCount}>
+                  <Text style={styles.queueCountText}>{queue.length}</Text>
+                </View>
+                <View style={{ flex: 1 }} />
+                <Ionicons
+                  name="chevron-up"
+                  size={20}
+                  color="rgba(255, 255, 255, 0.5)"
+                />
+              </Pressable>
+              {upNextSong ? (
+                <Pressable
+                  style={styles.nextSongContainer}
                   onPress={() => dispatch(playNextAsync())}
                 >
-                  <Ionicons name="play-skip-forward" size={42} color="#fff" />
+                  <View style={styles.nextSongImageContainer}>
+                    <SongImage
+                      url={upNextSong?.thumbnails?.at(-1)?.url || ""}
+                      width={48}
+                      height={48}
+                    />
+                    <View style={styles.nextSongOverlay}>
+                      <Ionicons name="play" size={16} color="#fff" />
+                    </View>
+                  </View>
+                  <View style={styles.nextSongInfo}>
+                    <Text numberOfLines={1} style={styles.nextSongTitle}>
+                      {upNextSong?.title || "Unknown"}
+                    </Text>
+                    <Text numberOfLines={1} style={styles.nextSongArtist}>
+                      {upNextSong?.channel?.name || "Unknown Artist"}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color="rgba(255, 255, 255, 0.5)"
+                  />
                 </Pressable>
-              </View>
-
-              {/* Next Song Section */}
-              {upNextSong && (
-                <View style={styles.nextSongSection}>
-                  <Pressable style={styles.nextSongHeader} onPress={openQueue}>
-                    <Ionicons
-                      name="list"
-                      size={18}
-                      color="rgba(255, 255, 255, 0.7)"
-                    />
-                    <Text style={styles.nextSongLabel}>Up Next</Text>
-                    <View style={styles.queueCount}>
-                      <Text style={styles.queueCountText}>{queue.length}</Text>
-                    </View>
-                    <View style={{ flex: 1 }} />
-                    <Ionicons
-                      name="chevron-up"
-                      size={20}
-                      color="rgba(255, 255, 255, 0.5)"
-                    />
-                  </Pressable>
-                  <Pressable
-                    style={styles.nextSongContainer}
-                    onPress={() => dispatch(playNextAsync())}
-                  >
-                    <View style={styles.nextSongImageContainer}>
-                      <SongImage
-                        url={upNextSong?.thumbnails?.at(-1)?.url || ""}
-                        width={48}
-                        height={48}
-                      />
-                      <View style={styles.nextSongOverlay}>
-                        <Ionicons name="play" size={16} color="#fff" />
-                      </View>
-                    </View>
-                    <View style={styles.nextSongInfo}>
-                      <Text numberOfLines={1} style={styles.nextSongTitle}>
-                        {upNextSong?.title || "Unknown"}
-                      </Text>
-                      <Text numberOfLines={1} style={styles.nextSongArtist}>
-                        {upNextSong?.channel?.name || "Unknown Artist"}
-                      </Text>
-                    </View>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={20}
-                      color="rgba(255, 255, 255, 0.5)"
-                    />
-                  </Pressable>
-                </View>
+              ) : (
+                <Pressable style={styles.emptyQueueHint} onPress={openQueue}>
+                  <Ionicons name="musical-notes-outline" size={20} color="rgba(255,255,255,0.3)" />
+                  <Text style={styles.emptyQueueHintText}>
+                    No songs in queue. Add songs from the menu.
+                  </Text>
+                </Pressable>
               )}
             </View>
-          </LinearGradient>
+          </RNScrollView>
         </Animated.View>
       </GestureDetector>
 
@@ -309,13 +401,7 @@ const QueueBottomSheet: React.FC<QueueBottomSheetProps> = ({
   const scrollViewRef = React.useRef(null);
 
   useEffect(() => {
-    if (visible) {
-      // Reset gesture value when opening
-      queueGestureTranslateY.value = 0;
-    } else {
-      // Reset gesture value when closing
-      queueGestureTranslateY.value = 0;
-    }
+    queueGestureTranslateY.value = 0;
   }, [visible]);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -326,7 +412,6 @@ const QueueBottomSheet: React.FC<QueueBottomSheetProps> = ({
     opacity: backdropOpacity.value,
   }));
 
-  // Separate gestures for drag area and content
   const dragAreaPanGesture = Gesture.Pan()
     .enabled(true)
     .activeOffsetY([-5, 5])
@@ -334,7 +419,6 @@ const QueueBottomSheet: React.FC<QueueBottomSheetProps> = ({
     .minDistance(0)
     .onUpdate((event) => {
       "worklet";
-      // Only allow downward drag (closing)
       if (event.translationY > 0) {
         queueGestureTranslateY.value = event.translationY * 0.8;
         translateY.value = event.translationY * 0.8;
@@ -350,10 +434,7 @@ const QueueBottomSheet: React.FC<QueueBottomSheetProps> = ({
         backdropOpacity.value = withTiming(0, { duration: 200 });
         runOnJS(onClose)();
       } else {
-        translateY.value = withSpring(0, {
-          damping: 20,
-          stiffness: 300,
-        });
+        translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
       }
       queueGestureTranslateY.value = 0;
     });
@@ -379,7 +460,6 @@ const QueueBottomSheet: React.FC<QueueBottomSheetProps> = ({
             </View>
           </GestureDetector>
 
-          {/* Header */}
           <GestureDetector gesture={dragAreaPanGesture}>
             <View style={styles.queueHeader}>
               <View style={styles.queueHeaderLeft}>
@@ -397,7 +477,6 @@ const QueueBottomSheet: React.FC<QueueBottomSheetProps> = ({
             </View>
           </GestureDetector>
 
-          {/* Current Song */}
           {currentSong && (
             <View style={styles.nowPlayingSection}>
               <Text style={styles.nowPlayingLabel}>Now Playing</Text>
@@ -405,10 +484,7 @@ const QueueBottomSheet: React.FC<QueueBottomSheetProps> = ({
                 <View style={styles.nowPlayingImageContainer}>
                   <SongImage
                     url={currentSong?.video?.thumbnails?.at(-1)?.url || ""}
-                    style={{
-                      width: 56,
-                      height: 56,
-                    }}
+                    style={{ width: 56, height: 56 }}
                   />
                   <View style={styles.nowPlayingIndicator}>
                     <Ionicons name="musical-notes" size={20} color="#1DB954" />
@@ -426,7 +502,6 @@ const QueueBottomSheet: React.FC<QueueBottomSheetProps> = ({
             </View>
           )}
 
-          {/* Queue List */}
           <ScrollView
             ref={scrollViewRef}
             style={styles.queueList}
@@ -456,10 +531,7 @@ const QueueBottomSheet: React.FC<QueueBottomSheetProps> = ({
                   <View style={styles.queueItemImageContainer}>
                     <SongImage
                       url={song?.thumbnails?.at(-1)?.url || ""}
-                      style={{
-                        width: 48,
-                        height: 48,
-                      }}
+                      style={{ width: 48, height: 48 }}
                     />
                   </View>
                   <View style={styles.queueItemInfo}>
@@ -485,9 +557,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#000",
   },
-  gradient: {
-    flex: 1,
-  },
   handleIndicator: {
     width: 36,
     height: 5,
@@ -495,7 +564,6 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     alignSelf: "center",
     marginTop: 8,
-    marginBottom: 0,
   },
   header: {
     flexDirection: "row",
@@ -526,67 +594,133 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
     paddingHorizontal: 24,
+    paddingBottom: 32,
   },
   albumArtSection: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 20,
+    paddingVertical: 16,
   },
   albumArtWrapper: {
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 12,
-    },
-    shadowOpacity: 0.8,
-    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.9,
+    shadowRadius: 32,
     elevation: 24,
-    borderRadius: 8,
+    borderRadius: 12,
     overflow: "hidden",
   },
   infoSection: {
-    paddingBottom: 10,
+    paddingBottom: 8,
     paddingHorizontal: 4,
   },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  infoText: {
+    flex: 1,
+    marginRight: 12,
+  },
   songTitle: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "800",
     color: "#fff",
-    marginBottom: 8,
+    marginBottom: 6,
     letterSpacing: -0.5,
   },
   artistName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "600",
     color: "rgba(255, 255, 255, 0.7)",
   },
+  likeButton: {
+    width: 48,
+    height: 48,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   sliderSection: {
-    paddingTop: 15,
-    paddingBottom: 10,
+    paddingTop: 12,
+    paddingBottom: 8,
   },
   controlsSection: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+  },
+  sideControlButton: {
+    width: 44,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
   },
   controlButton: {
-    width: 60,
-    height: 60,
+    width: 52,
+    height: 52,
     justifyContent: "center",
     alignItems: "center",
+  },
+  repeatOneBadge: {
+    position: "absolute",
+    top: -4,
+    right: -6,
+    backgroundColor: "#1DB954",
+    borderRadius: 8,
+    width: 16,
+    height: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  repeatOneText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#000",
   },
   playButtonContainer: {
-    width: 90,
-    height: 90,
+    width: 76,
+    height: 76,
     justifyContent: "center",
     alignItems: "center",
   },
+  playButtonBg: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#fff",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
   nextSongSection: {
-    marginTop: 24,
+    marginTop: 16,
     paddingHorizontal: 4,
+    marginBottom: 16,
+  },
+  emptyQueueHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderRadius: 8,
+    padding: 16,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.08)",
+  },
+  emptyQueueHintText: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.4)",
+    flex: 1,
   },
   nextSongHeader: {
     flexDirection: "row",

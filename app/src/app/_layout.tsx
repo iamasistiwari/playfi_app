@@ -13,7 +13,7 @@ import { Provider as MenuProvider } from "react-native-paper";
 import Toast from "react-native-toast-message";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "react-native";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { AudioPro } from "react-native-audio-pro";
 import * as SplashScreen from "expo-splash-screen";
 
@@ -44,28 +44,25 @@ export default function Layout() {
     prepare();
   }, []);
 
-  const onLayoutRootView = useCallback(async () => {
-    if (appIsReady) {
-      await SplashScreen.hideAsync();
-    }
-  }, [appIsReady]);
-
   const handleSplashFinish = () => {
     setShowCustomSplash(false);
   };
+
+  // Hide native splash as soon as custom splash is ready
+  useEffect(() => {
+    if (appIsReady) {
+      SplashScreen.hideAsync();
+    }
+  }, [appIsReady]);
 
   if (!appIsReady) {
     return null;
   }
 
-  if (showCustomSplash) {
-    return <CustomSplashScreen onFinish={handleSplashFinish} />;
-  }
-
   return (
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
-        <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
           <StatusBar barStyle="light-content" backgroundColor="#000000" />
           <SafeScreen>
             <MenuProvider>
@@ -73,6 +70,9 @@ export default function Layout() {
               <Slot />
             </MenuProvider>
           </SafeScreen>
+          {showCustomSplash && (
+            <CustomSplashScreen onFinish={handleSplashFinish} />
+          )}
         </GestureHandlerRootView>
       </PersistGate>
     </Provider>

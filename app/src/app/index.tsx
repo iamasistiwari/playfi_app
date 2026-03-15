@@ -61,6 +61,10 @@ const Index = () => {
             email: res?.responseData?.user?.email,
             name: res?.responseData?.user?.name,
             isAdmin: res?.responseData?.user?.isAdmin || false,
+            bio: res?.responseData?.user?.bio || null,
+            avatar_url: res?.responseData?.user?.avatar_url || null,
+            audioQuality: "Very High (320kbps)",
+            crossfadeEnabled: false,
           };
           dispatch(setUser(user));
         }

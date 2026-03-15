@@ -18,7 +18,7 @@ const persistConfig = {
   key: "root",
   storage: AsyncStorage,
   whitelist: ["user", "songPlayer", "playlist"],
-  version: 3,
+  version: 4,
   migrate: (state: any) => {
     // Ensure new properties exist in persisted state
     if (state && state.songPlayer) {
@@ -50,6 +50,13 @@ const persistConfig = {
           activeDownloads: [],
           lastSearchQuery: state.songPlayer.lastSearchQuery || "",
           lastSearchResults: state.songPlayer.lastSearchResults || [],
+          repeatMode: state.songPlayer.repeatMode || "off",
+          shuffleEnabled: state.songPlayer.shuffleEnabled || false,
+        },
+        user: {
+          ...state.user,
+          audioQuality: state.user?.audioQuality || "Very High (320kbps)",
+          crossfadeEnabled: state.user?.crossfadeEnabled || false,
         },
       });
     }

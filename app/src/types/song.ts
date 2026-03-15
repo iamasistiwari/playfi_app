@@ -11,6 +11,45 @@ interface User {
   name: string;
   joined_at: string;
 }
+
+export interface UserProfile {
+  email: string;
+  name: string;
+  avatar_url: string | null;
+  bio: string | null;
+  joined_at: string;
+  playlists_count: number;
+  total_plays: number;
+}
+
+export interface UserStats {
+  total_plays: number;
+  total_minutes: number;
+  playlists_count: number;
+  top_songs: Video[];
+}
+
+export interface PlayHistoryItem {
+  id: string;
+  song: Video;
+  played_at: string;
+  duration_listened: number;
+  completed: boolean;
+}
+
+export interface PlaylistMember {
+  id: string;
+  user: User;
+  role: "editor" | "viewer";
+  joined_at: string;
+}
+
+export interface UserSearchResult {
+  email: string;
+  name: string;
+  avatar_url: string | null;
+}
+
 export type SetSongResult = {
   song: Song | null;
   relatedSongs: Video[] | null;
@@ -25,6 +64,7 @@ export interface Playlist {
   songs: Video[];
   created_at: string;
   isGlobal: boolean;
+  members?: PlaylistMember[];
 }
 
 export interface Video {
